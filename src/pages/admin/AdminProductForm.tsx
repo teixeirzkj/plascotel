@@ -35,6 +35,10 @@ const emptyForm: FormState = {
   novo: false,
   maisVendido: false,
   prazoEntrega: "",
+  peso: undefined,
+  altura: undefined,
+  largura: undefined,
+  comprimento: undefined,
 };
 
 function slugify(text: string) {
@@ -416,6 +420,66 @@ export default function AdminProductForm() {
               className="input"
             />
           </Field>
+        </div>
+
+        <div>
+          <p className="mb-1 text-sm font-medium text-charcoal/80">
+            Peso e dimensões da embalagem (para calcular o frete)
+          </p>
+          <p className="mb-3 text-xs text-charcoal/50">
+            Se não preencher, o site usa um valor padrão genérico e o frete
+            calculado pode ficar impreciso.
+          </p>
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+            <Field label="Peso (kg)">
+              <input
+                type="number"
+                step="0.01"
+                min={0}
+                value={form.peso ?? ""}
+                onChange={(e) =>
+                  update("peso", e.target.value ? Number(e.target.value) : undefined)
+                }
+                className="input"
+              />
+            </Field>
+            <Field label="Altura (cm)">
+              <input
+                type="number"
+                step="0.1"
+                min={0}
+                value={form.altura ?? ""}
+                onChange={(e) =>
+                  update("altura", e.target.value ? Number(e.target.value) : undefined)
+                }
+                className="input"
+              />
+            </Field>
+            <Field label="Largura (cm)">
+              <input
+                type="number"
+                step="0.1"
+                min={0}
+                value={form.largura ?? ""}
+                onChange={(e) =>
+                  update("largura", e.target.value ? Number(e.target.value) : undefined)
+                }
+                className="input"
+              />
+            </Field>
+            <Field label="Comprimento (cm)">
+              <input
+                type="number"
+                step="0.1"
+                min={0}
+                value={form.comprimento ?? ""}
+                onChange={(e) =>
+                  update("comprimento", e.target.value ? Number(e.target.value) : undefined)
+                }
+                className="input"
+              />
+            </Field>
+          </div>
         </div>
 
         <div className="flex flex-wrap gap-5">

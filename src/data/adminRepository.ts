@@ -29,6 +29,10 @@ function toProductRow(p: Partial<Product>) {
     novo: p.novo,
     mais_vendido: p.maisVendido,
     prazo_entrega: p.prazoEntrega,
+    peso: p.peso ?? null,
+    altura: p.altura ?? null,
+    largura: p.largura ?? null,
+    comprimento: p.comprimento ?? null,
   };
 }
 

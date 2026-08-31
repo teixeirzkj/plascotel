@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
-import { FiAlertTriangle } from "react-icons/fi";
+import { FiAlertTriangle, FiLoader } from "react-icons/fi";
 import { useCartStore } from "../store/cart";
 import { useLastOrderStore } from "../store/lastOrder";
 import { formatCurrency } from "../lib/format";
 import { placeOrder } from "../lib/checkout";
+import { calcularFrete, type OpcaoFrete } from "../lib/frete";
+import { buscarEnderecoPorCep } from "../lib/cep";
 import { INFINITEPAY_PAYMENT_LINK } from "../config/store";
 import type { CustomerData } from "../types";
 
@@ -35,14 +37,65 @@ export default function CheckoutPage() {
   );
   const [loading, setLoading] = useState(false);
 
+  const [buscandoEndereco, setBuscandoEndereco] = useState(false);
+  const [calculandoFrete, setCalculandoFrete] = useState(false);
+  const [erroFrete, setErroFrete] = useState<string | null>(null);
+  const [opcoesFrete, setOpcoesFrete] = useState<OpcaoFrete[]>([]);
+  const [freteSelecionadoId, setFreteSelecionadoId] = useState<number | null>(null);
+  const [freteIntegradoDisponivel, setFreteIntegradoDisponivel] = useState(true);
+
   const sub = subtotal();
-  const frete = sub >= FRETE_GRATIS_ACIMA_DE ? 0 : FRETE_PADRAO;
+  const freteOpcaoSelecionada = opcoesFrete.find((o) => o.id === freteSelecionadoId);
+  const freteFallback = sub >= FRETE_GRATIS_ACIMA_DE ? 0 : FRETE_PADRAO;
+  const frete = freteOpcaoSelecionada ? freteOpcaoSelecionada.preco : freteFallback;
   const total = sub + frete;
 
   if (items.length === 0) return <Navigate to="/carrinho" replace />;
 
   function update<K extends keyof CustomerData>(key: K, value: CustomerData[K]) {
     setCliente((c) => ({ ...c, [key]: value }));
+  }
+
+  async function handleCepBlur() {
+    const cepLimpo = cliente.cep.replace(/\D/g, "");
+    if (cepLimpo.length !== 8) return;
+
+    setBuscandoEndereco(true);
+    buscarEnderecoPorCep(cepLimpo)
+      .then((endereco) => {
+        if (!endereco) return;
+        setCliente((c) => ({
+          ...c,
+          estado: endereco.estado || c.estado,
+          cidade: endereco.cidade || c.cidade,
+          bairro: endereco.bairro || c.bairro,
+          rua: endereco.rua || c.rua,
+        }));
+      })
+      .finally(() => setBuscandoEndereco(false));
+
+    setCalculandoFrete(true);
+    setErroFrete(null);
+    setOpcoesFrete([]);
+    setFreteSelecionadoId(null);
+    try {
+      const resultado = await calcularFrete(cepLimpo, items);
+      if (!resultado.configurado) {
+        setFreteIntegradoDisponivel(false);
+        return;
+      }
+      setFreteIntegradoDisponivel(true);
+      if (resultado.opcoes.length === 0) {
+        setErroFrete("Nenhuma transportadora atende esse CEP no momento. Usando frete padrão.");
+        return;
+      }
+      setOpcoesFrete(resultado.opcoes);
+      setFreteSelecionadoId(resultado.opcoes[0].id);
+    } catch {
+      setErroFrete("Não foi possível calcular o frete agora. Usando frete padrão.");
+    } finally {
+      setCalculandoFrete(false);
+    }
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -105,12 +158,22 @@ export default function CheckoutPage() {
             <h2 className="mb-4 font-display text-xl">Endereço de entrega</h2>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <Field label="CEP">
-                <input
-                  required
-                  value={cliente.cep}
-                  onChange={(e) => update("cep", e.target.value)}
-                  className="input"
-                />
+                <div className="relative">
+                  <input
+                    required
+                    value={cliente.cep}
+                    onChange={(e) => update("cep", e.target.value)}
+                    onBlur={handleCepBlur}
+                    placeholder="00000-000"
+                    className="input"
+                  />
+                  {(buscandoEndereco || calculandoFrete) && (
+                    <FiLoader
+                      className="absolute right-3 top-1/2 -translate-y-1/2 animate-spin text-charcoal/40"
+                      size={16}
+                    />
+                  )}
+                </div>
               </Field>
               <Field label="Estado">
                 <input
@@ -241,10 +304,52 @@ export default function CheckoutPage() {
             <span>Subtotal</span>
             <span>{formatCurrency(sub)}</span>
           </div>
-          <div className="flex justify-between py-2 text-sm text-charcoal/70">
-            <span>Frete</span>
-            <span>{frete === 0 ? "Grátis" : formatCurrency(frete)}</span>
-          </div>
+
+          {freteIntegradoDisponivel && opcoesFrete.length > 0 ? (
+            <div className="flex flex-col gap-2 border-b border-sand py-3">
+              <span className="text-sm text-charcoal/70">Frete</span>
+              {opcoesFrete.map((o) => (
+                <label
+                  key={o.id}
+                  className={`flex cursor-pointer items-center justify-between gap-3 rounded-xl border p-2.5 text-sm ${
+                    freteSelecionadoId === o.id
+                      ? "border-charcoal bg-wood-50"
+                      : "border-sand"
+                  }`}
+                >
+                  <span className="flex items-center gap-2">
+                    <input
+                      type="radio"
+                      name="opcaoFrete"
+                      checked={freteSelecionadoId === o.id}
+                      onChange={() => setFreteSelecionadoId(o.id)}
+                      className="h-4 w-4 accent-wood-700"
+                    />
+                    <span>
+                      {o.servico}
+                      {o.prazoDias ? ` · ${o.prazoDias} dia(s) úteis` : ""}
+                    </span>
+                  </span>
+                  <span className="font-medium">
+                    {o.preco === 0 ? "Grátis" : formatCurrency(o.preco)}
+                  </span>
+                </label>
+              ))}
+            </div>
+          ) : (
+            <div className="flex justify-between py-2 text-sm text-charcoal/70">
+              <span>Frete</span>
+              <span>{frete === 0 ? "Grátis" : formatCurrency(frete)}</span>
+            </div>
+          )}
+
+          {erroFrete && <p className="py-1 text-xs text-offer">{erroFrete}</p>}
+          {!freteIntegradoDisponivel && (
+            <p className="py-1 text-xs text-charcoal/50">
+              Informe o CEP para calcular o frete exato do seu endereço.
+            </p>
+          )}
+
           <div className="flex justify-between border-t border-sand pt-3 text-lg font-semibold">
             <span>Total</span>
             <span>{formatCurrency(total)}</span>

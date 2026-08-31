@@ -31,6 +31,11 @@ function mapProductRow(row: any): Product {
     novo: row.novo ?? false,
     maisVendido: row.mais_vendido ?? false,
     prazoEntrega: row.prazo_entrega ?? "",
+    peso: row.peso !== null && row.peso !== undefined ? Number(row.peso) : undefined,
+    altura: row.altura !== null && row.altura !== undefined ? Number(row.altura) : undefined,
+    largura: row.largura !== null && row.largura !== undefined ? Number(row.largura) : undefined,
+    comprimento:
+      row.comprimento !== null && row.comprimento !== undefined ? Number(row.comprimento) : undefined,
   };
 }
 

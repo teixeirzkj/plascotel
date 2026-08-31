@@ -38,8 +38,19 @@ create table if not exists produtos (
   novo boolean not null default false,
   mais_vendido boolean not null default false,
   prazo_entrega text not null default '',
+  peso numeric(10, 3),
+  altura numeric(10, 2),
+  largura numeric(10, 2),
+  comprimento numeric(10, 2),
   criado_em timestamptz not null default now()
 );
+
+-- Garante as colunas de peso/dimensões em bancos criados antes desta versão
+-- do schema (rodar o arquivo de novo não recria a tabela "produtos").
+alter table produtos add column if not exists peso numeric(10, 3);
+alter table produtos add column if not exists altura numeric(10, 2);
+alter table produtos add column if not exists largura numeric(10, 2);
+alter table produtos add column if not exists comprimento numeric(10, 2);
 
 create table if not exists pedidos (
   id uuid primary key default gen_random_uuid(),

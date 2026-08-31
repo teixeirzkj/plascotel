@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { FiMapPin, FiPhone, FiMail } from "react-icons/fi";
 import { fetchAdminOrders, adminUpdateOrderStatus, type AdminOrder } from "../../data/adminRepository";
 import { formatCurrency } from "../../lib/format";
 
@@ -88,7 +89,22 @@ export default function AdminOrders() {
         ) : pedidosFiltrados.length === 0 ? (
           <p className="text-charcoal/60">Nenhum pedido neste período.</p>
         ) : (
-          pedidosFiltrados.map((p) => (
+          pedidosFiltrados.map((p) => {
+            const endereco = [
+              p.cliente?.rua && p.cliente?.numero
+                ? `${p.cliente.rua}, ${p.cliente.numero}`
+                : p.cliente?.rua,
+              p.cliente?.complemento,
+              p.cliente?.bairro,
+              p.cliente?.cidade && p.cliente?.estado
+                ? `${p.cliente.cidade}/${p.cliente.estado}`
+                : p.cliente?.cidade,
+              p.cliente?.cep,
+            ]
+              .filter(Boolean)
+              .join(" — ");
+
+            return (
             <div key={p.id} className="rounded-2xl bg-white p-5 shadow-card">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
@@ -125,6 +141,37 @@ export default function AdminOrders() {
                   </select>
                 </div>
               </div>
+
+              {(p.cliente?.whatsapp || p.cliente?.email || endereco) && (
+                <div className="mt-3 flex flex-col gap-1.5 rounded-xl bg-wood-50 p-3 text-sm text-charcoal/80">
+                  {p.cliente?.whatsapp && (
+                    <p className="flex items-center gap-2">
+                      <FiPhone size={14} className="flex-none text-charcoal/50" />
+                      <a
+                        href={`https://wa.me/55${p.cliente.whatsapp.replace(/\D/g, "")}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="hover:underline"
+                      >
+                        {p.cliente.whatsapp}
+                      </a>
+                    </p>
+                  )}
+                  {p.cliente?.email && (
+                    <p className="flex items-center gap-2">
+                      <FiMail size={14} className="flex-none text-charcoal/50" />
+                      {p.cliente.email}
+                    </p>
+                  )}
+                  {endereco && (
+                    <p className="flex items-start gap-2">
+                      <FiMapPin size={14} className="mt-0.5 flex-none text-charcoal/50" />
+                      <span>{endereco}</span>
+                    </p>
+                  )}
+                </div>
+              )}
+
               <ul className="mt-4 flex flex-col gap-1 border-t border-sand pt-3 text-sm">
                 {p.itens.map((i, idx) => (
                   <li key={idx} className="flex justify-between">
@@ -140,7 +187,8 @@ export default function AdminOrders() {
                 <span>{formatCurrency(p.total)}</span>
               </div>
             </div>
-          ))
+            );
+          })
         )}
       </div>
     </div>

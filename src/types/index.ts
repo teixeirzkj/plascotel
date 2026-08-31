@@ -25,6 +25,12 @@ export interface Product {
   novo: boolean;
   maisVendido: boolean;
   prazoEntrega: string;
+  /** Peso em kg, para cálculo de frete. Se ausente, usa um valor padrão. */
+  peso?: number;
+  /** Dimensões em cm, para cálculo de frete. Se ausentes, usa um padrão. */
+  altura?: number;
+  largura?: number;
+  comprimento?: number;
 }
 
 export interface CartItem {
@@ -34,6 +40,10 @@ export interface CartItem {
   precoUnitario: number;
   quantidade: number;
   estoqueDisponivel: number;
+  peso?: number;
+  altura?: number;
+  largura?: number;
+  comprimento?: number;
 }
 
 export interface CustomerData {
