@@ -1,0 +1,139 @@
+import { supabase } from "../lib/supabase";
+import type { Category, Product } from "../types";
+
+function requireSupabase() {
+  if (!supabase) {
+    throw new Error(
+      "Supabase não está configurado. Preencha VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY no .env."
+    );
+  }
+  return supabase;
+}
+
+function toProductRow(p: Partial<Product>) {
+  return {
+    nome: p.nome,
+    slug: p.slug,
+    categoria_id: p.categoriaId,
+    descricao: p.descricao,
+    descricao_curta: p.descricaoCurta,
+    preco: p.preco,
+    preco_promocional: p.precoPromocional,
+    imagens: p.imagens,
+    cores: p.cores,
+    dimensoes: p.dimensoes,
+    material: p.material,
+    estoque: p.estoque,
+    destaque: p.destaque,
+    oferta: p.oferta,
+    novo: p.novo,
+    mais_vendido: p.maisVendido,
+    prazo_entrega: p.prazoEntrega,
+  };
+}
+
+export async function adminCreateProduct(product: Omit<Product, "id">) {
+  const db = requireSupabase();
+  const { error } = await db.from("produtos").insert(toProductRow(product));
+  if (error) throw error;
+}
+
+export async function adminUpdateProduct(id: string, product: Partial<Product>) {
+  const db = requireSupabase();
+  const { error } = await db
+    .from("produtos")
+    .update(toProductRow(product))
+    .eq("id", id);
+  if (error) throw error;
+}
+
+export async function adminDeleteProduct(id: string) {
+  const db = requireSupabase();
+  const { error } = await db.from("produtos").delete().eq("id", id);
+  if (error) throw error;
+}
+
+export async function adminCreateCategory(category: Omit<Category, "id">) {
+  const db = requireSupabase();
+  const { data, error } = await db
+    .from("categorias")
+    .insert({
+      nome: category.nome,
+      slug: category.slug,
+      descricao: category.descricao,
+      imagem: category.imagem,
+    })
+    .select()
+    .single();
+  if (error) throw error;
+  return data as { id: string; nome: string; slug: string; descricao: string; imagem: string };
+}
+
+export async function adminUpdateCategory(id: string, category: Partial<Category>) {
+  const db = requireSupabase();
+  const { error } = await db
+    .from("categorias")
+    .update({
+      nome: category.nome,
+      slug: category.slug,
+      descricao: category.descricao,
+      imagem: category.imagem,
+    })
+    .eq("id", id);
+  if (error) throw error;
+}
+
+export async function adminDeleteCategory(id: string) {
+  const db = requireSupabase();
+  const { error } = await db.from("categorias").delete().eq("id", id);
+  if (error) throw error;
+}
+
+export interface AdminOrder {
+  id: string;
+  numero: number;
+  subtotal: number;
+  frete: number;
+  total: number;
+  formaPagamento: string;
+  status: string;
+  cliente: Record<string, string>;
+  criadoEm: string;
+  itens: { nome: string; quantidade: number; precoUnitario: number }[];
+}
+
+export async function fetchAdminOrders(): Promise<AdminOrder[]> {
+  const db = requireSupabase();
+  const { data, error } = await db
+    .from("pedidos")
+    .select("*, pedido_itens(nome, quantidade, preco_unitario)")
+    .order("criado_em", { ascending: false });
+  if (error) throw error;
+  return (data ?? []).map((row: any) => ({
+    id: row.id,
+    numero: row.numero,
+    subtotal: Number(row.subtotal),
+    frete: Number(row.frete),
+    total: Number(row.total),
+    formaPagamento: row.forma_pagamento,
+    status: row.status,
+    cliente: row.cliente,
+    criadoEm: row.criado_em,
+    itens: (row.pedido_itens ?? []).map((i: any) => ({
+      nome: i.nome,
+      quantidade: i.quantidade,
+      precoUnitario: Number(i.preco_unitario),
+    })),
+  }));
+}
+
+/**
+ * Atualiza o status do pedido. Se o novo status for "cancelado", o gatilho
+ * `trg_restaurar_estoque` (ver supabase/schema.sql) devolve automaticamente
+ * as unidades ao estoque de cada produto do pedido.
+ */
+export async function adminUpdateOrderStatus(id: string, status: string) {
+  const db = requireSupabase();
+  const { error } = await db.from("pedidos").update({ status }).eq("id", id);
+  if (error) throw error;
+}
