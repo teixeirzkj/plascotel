@@ -1,5 +1,5 @@
 import { supabase, isSupabaseConfigured } from "../lib/supabase";
-import type { Category, Product } from "../types";
+import type { Category, Product, ProductVariant } from "../types";
 import { categories as localCategories } from "./categories";
 import { products as localProducts } from "./products";
 
@@ -9,6 +9,21 @@ import { products as localProducts } from "./products";
  * banco existirem (ver supabase/schema.sql), os dados passam a vir de lá
  * automaticamente, sem precisar mudar nenhuma página.
  */
+
+const PRODUTO_COM_VARIANTES_SELECT =
+  "*, produto_variantes(id, cor, preco, preco_promocional, estoque, imagens, ordem)";
+
+function mapVariantRow(row: any): ProductVariant {
+  return {
+    id: row.id,
+    cor: row.cor,
+    preco: Number(row.preco),
+    precoPromocional:
+      row.preco_promocional !== null ? Number(row.preco_promocional) : null,
+    estoque: row.estoque ?? 0,
+    imagens: row.imagens ?? [],
+  };
+}
 
 function mapProductRow(row: any): Product {
   return {
@@ -36,6 +51,10 @@ function mapProductRow(row: any): Product {
     largura: row.largura !== null && row.largura !== undefined ? Number(row.largura) : undefined,
     comprimento:
       row.comprimento !== null && row.comprimento !== undefined ? Number(row.comprimento) : undefined,
+    variantes: ((row.produto_variantes ?? []) as any[])
+      .slice()
+      .sort((a, b) => (a.ordem ?? 0) - (b.ordem ?? 0))
+      .map(mapVariantRow),
   };
 }
 
@@ -66,7 +85,7 @@ export async function fetchProducts(): Promise<Product[]> {
   if (!isSupabaseConfigured || !supabase) return localProducts;
   const { data, error } = await supabase
     .from("produtos")
-    .select("*")
+    .select(PRODUTO_COM_VARIANTES_SELECT)
     .order("criado_em", { ascending: false });
   if (error || !data || data.length === 0) return localProducts;
   return data.map(mapProductRow);
@@ -80,7 +99,7 @@ export async function fetchProductBySlug(
   }
   const { data, error } = await supabase
     .from("produtos")
-    .select("*")
+    .select(PRODUTO_COM_VARIANTES_SELECT)
     .eq("slug", slug)
     .maybeSingle();
   if (error || !data) return undefined;

@@ -109,6 +109,11 @@ export default function CheckoutPage() {
         window.location.href = INFINITEPAY_PAYMENT_LINK;
       }
       navigate("/pedido-realizado");
+    } catch (err: any) {
+      alert(
+        err.message ??
+          "Não foi possível concluir a compra. Verifique o estoque dos itens e tente novamente."
+      );
     } finally {
       setLoading(false);
     }

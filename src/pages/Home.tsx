@@ -7,6 +7,7 @@ import { Benefits } from "../components/Benefits";
 import { WhyChooseUs } from "../components/WhyChooseUs";
 import { InstagramSection } from "../components/InstagramSection";
 import { useCatalogStore } from "../store/catalog";
+import { temPromocaoExibicao } from "../lib/productPricing";
 
 export default function Home() {
   const products = useCatalogStore((s) => s.products);
@@ -14,7 +15,7 @@ export default function Home() {
   // Se nenhum produto foi marcado como "destaque" ainda, mostra os mais
   // recentes para a seção nunca ficar vazia.
   const destaques = emDestaque.length > 0 ? emDestaque : products.slice(0, 8);
-  const ofertas = products.filter((p) => p.oferta && p.precoPromocional);
+  const ofertas = products.filter((p) => p.oferta && temPromocaoExibicao(p));
 
   return (
     <>

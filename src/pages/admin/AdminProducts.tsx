@@ -5,6 +5,7 @@ import { fetchProducts } from "../../data/repository";
 import { adminDeleteProduct } from "../../data/adminRepository";
 import { useCatalogStore } from "../../store/catalog";
 import { formatCurrency } from "../../lib/format";
+import { precoExibicao, estoqueExibicao, imagemPrincipal } from "../../lib/productPricing";
 import type { Product } from "../../types";
 
 export default function AdminProducts() {
@@ -55,26 +56,28 @@ export default function AdminProducts() {
               <li key={p.id} className="rounded-2xl bg-white p-4 shadow-card">
                 <div className="flex items-start gap-3">
                   <img
-                    src={p.imagens[0]}
+                    src={imagemPrincipal(p)}
                     alt=""
                     className="h-16 w-16 flex-none rounded-lg object-cover"
                   />
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-medium">{p.nome}</p>
                     <p className="mt-0.5 text-sm text-charcoal/70">
-                      {formatCurrency(p.precoPromocional ?? p.preco)}
+                      {(p.variantes?.length ?? 0) > 0 && "A partir de "}
+                      {formatCurrency(precoExibicao(p))}
                     </p>
                     <p
                       className={`text-sm ${
-                        p.estoque <= 3 ? "font-semibold text-offer" : "text-charcoal/60"
+                        estoqueExibicao(p) <= 3 ? "font-semibold text-offer" : "text-charcoal/60"
                       }`}
                     >
-                      {p.estoque} un. em estoque
+                      {estoqueExibicao(p)} un. em estoque
+                      {(p.variantes?.length ?? 0) > 0 && ` (${p.variantes!.length} cores)`}
                     </p>
                     <div className="mt-2 flex flex-wrap gap-1">
                       {p.oferta && <Tag color="bg-offer">Oferta</Tag>}
                       {p.novo && <Tag color="bg-charcoal">Novo</Tag>}
-                      {p.estoque === 0 && <Tag color="bg-charcoal/50">Esgotado</Tag>}
+                      {estoqueExibicao(p) === 0 && <Tag color="bg-charcoal/50">Esgotado</Tag>}
                     </div>
                   </div>
                   <div className="flex flex-none flex-col gap-1">
@@ -114,18 +117,28 @@ export default function AdminProducts() {
                 {produtos.map((p) => (
                   <tr key={p.id} className="border-b border-sand/60">
                     <td className="flex items-center gap-3 p-4">
-                      <img src={p.imagens[0]} alt="" className="h-12 w-12 rounded-lg object-cover" />
-                      <span className="font-medium">{p.nome}</span>
+                      <img src={imagemPrincipal(p)} alt="" className="h-12 w-12 rounded-lg object-cover" />
+                      <span className="font-medium">
+                        {p.nome}
+                        {(p.variantes?.length ?? 0) > 0 && (
+                          <span className="ml-2 text-xs font-normal text-charcoal/50">
+                            ({p.variantes!.length} cores)
+                          </span>
+                        )}
+                      </span>
                     </td>
-                    <td className="p-4">{formatCurrency(p.precoPromocional ?? p.preco)}</td>
-                    <td className={`p-4 ${p.estoque <= 3 ? "font-semibold text-offer" : ""}`}>
-                      {p.estoque} un.
+                    <td className="p-4">
+                      {(p.variantes?.length ?? 0) > 0 && "A partir de "}
+                      {formatCurrency(precoExibicao(p))}
+                    </td>
+                    <td className={`p-4 ${estoqueExibicao(p) <= 3 ? "font-semibold text-offer" : ""}`}>
+                      {estoqueExibicao(p)} un.
                     </td>
                     <td className="p-4">
                       <div className="flex flex-wrap gap-1">
                         {p.oferta && <Tag color="bg-offer">Oferta</Tag>}
                         {p.novo && <Tag color="bg-charcoal">Novo</Tag>}
-                        {p.estoque === 0 && <Tag color="bg-charcoal/50">Esgotado</Tag>}
+                        {estoqueExibicao(p) === 0 && <Tag color="bg-charcoal/50">Esgotado</Tag>}
                       </div>
                     </td>
                     <td className="p-4">

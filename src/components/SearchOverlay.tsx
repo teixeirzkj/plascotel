@@ -4,6 +4,7 @@ import { FiSearch, FiX } from "react-icons/fi";
 import { Link } from "react-router-dom";
 import { useCatalogStore } from "../store/catalog";
 import { formatCurrency } from "../lib/format";
+import { precoExibicao, imagemPrincipal } from "../lib/productPricing";
 
 interface SearchOverlayProps {
   open: boolean;
@@ -75,14 +76,14 @@ export function SearchOverlay({ open, onClose }: SearchOverlayProps) {
                   className="flex items-center gap-4 rounded-xl p-2 transition hover:bg-wood-100"
                 >
                   <img
-                    src={p.imagens[0]}
+                    src={imagemPrincipal(p)}
                     alt={p.nome}
                     className="h-14 w-14 rounded-lg object-cover"
                   />
                   <div className="flex-1 text-left">
                     <p className="font-medium">{p.nome}</p>
                     <p className="text-sm text-charcoal/60">
-                      {formatCurrency(p.precoPromocional ?? p.preco)}
+                      {formatCurrency(precoExibicao(p))}
                     </p>
                   </div>
                 </Link>

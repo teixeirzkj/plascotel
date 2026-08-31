@@ -52,7 +52,7 @@ export function CartDrawer() {
               ) : (
                 <ul className="flex flex-col gap-4">
                   {items.map((item) => (
-                    <li key={item.productId} className="flex gap-3">
+                    <li key={`${item.productId}:${item.varianteId ?? ""}`} className="flex gap-3">
                       <img
                         src={item.imagem}
                         alt={item.nome}
@@ -62,9 +62,14 @@ export function CartDrawer() {
                         <div className="flex items-start justify-between gap-2">
                           <p className="font-medium leading-snug">
                             {item.nome}
+                            {item.cor && (
+                              <span className="block text-xs font-normal text-charcoal/50">
+                                Cor: {item.cor}
+                              </span>
+                            )}
                           </p>
                           <button
-                            onClick={() => removeItem(item.productId)}
+                            onClick={() => removeItem(item.productId, item.varianteId)}
                             aria-label="Remover item"
                             className="text-charcoal/40 hover:text-offer"
                           >
@@ -77,7 +82,7 @@ export function CartDrawer() {
                         <div className="mt-2 flex items-center gap-3">
                           <div className="flex items-center rounded-full border border-sand">
                             <button
-                              onClick={() => decrement(item.productId)}
+                              onClick={() => decrement(item.productId, item.varianteId)}
                               aria-label="Diminuir quantidade"
                               className="p-1.5 hover:bg-wood-100"
                             >
@@ -87,7 +92,7 @@ export function CartDrawer() {
                               {item.quantidade}
                             </span>
                             <button
-                              onClick={() => increment(item.productId)}
+                              onClick={() => increment(item.productId, item.varianteId)}
                               aria-label="Aumentar quantidade"
                               disabled={item.quantidade >= item.estoqueDisponivel}
                               className="p-1.5 hover:bg-wood-100 disabled:opacity-30"

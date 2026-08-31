@@ -25,7 +25,8 @@ export async function placeOrder(
     const { data, error } = await supabase.rpc("criar_pedido", {
       p_itens: itens.map((i) => ({
         produto_id: i.productId,
-        nome: i.nome,
+        variante_id: i.varianteId ?? null,
+        nome: i.cor ? `${i.nome} (${i.cor})` : i.nome,
         preco_unitario: i.precoUnitario,
         quantidade: i.quantidade,
       })),
@@ -36,19 +37,22 @@ export async function placeOrder(
       p_forma_pagamento: formaPagamento,
     });
 
-    if (!error && data) {
-      return {
-        id: data.id,
-        numero: data.numero,
-        itens,
-        subtotal,
-        frete,
-        total,
-        formaPagamento,
-        cliente,
-        criadoEm: data.criado_em,
-      };
-    }
+    // Se o Supabase respondeu com erro (ex: estoque insuficiente), a compra
+    // realmente falhou — não pode cair no modo demonstração como se tivesse
+    // dado certo, senão o cliente acha que comprou e o pedido nunca existiu.
+    if (error) throw error;
+
+    return {
+      id: data.id,
+      numero: data.numero,
+      itens,
+      subtotal,
+      frete,
+      total,
+      formaPagamento,
+      cliente,
+      criadoEm: data.criado_em,
+    };
   }
 
   const numero = Math.floor(1000 + Math.random() * 9000);

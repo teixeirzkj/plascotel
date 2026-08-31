@@ -6,16 +6,24 @@ import {
   adminCreateCategory,
   adminCreateProduct,
   adminUpdateProduct,
+  adminSaveProductVariants,
 } from "../../data/adminRepository";
 import { uploadImage } from "../../lib/storage";
 import { ImageUploadField } from "../../components/admin/ImageUploadField";
-import type { Category, Product } from "../../types";
+import { VariantImagesField } from "../../components/admin/VariantImagesField";
+import type { Category, Product, ProductVariant } from "../../types";
 import { useCatalogStore } from "../../store/catalog";
 
-type FormState = Omit<Product, "id" | "imagens" | "cores"> & {
+type FormState = Omit<Product, "id" | "imagens" | "cores" | "variantes"> & {
   imagensTexto: string;
   coresTexto: string;
 };
+
+type VariantForm = Omit<ProductVariant, "id"> & { id?: string };
+
+function novaVariante(): VariantForm {
+  return { cor: "", preco: 0, precoPromocional: null, estoque: 0, imagens: [] };
+}
 
 const emptyForm: FormState = {
   nome: "",
@@ -57,6 +65,7 @@ export default function AdminProductForm() {
 
   const [categorias, setCategorias] = useState<Category[]>([]);
   const [form, setForm] = useState<FormState>(emptyForm);
+  const [variantes, setVariantes] = useState<VariantForm[]>([]);
   const [loading, setLoading] = useState(!isNew);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -112,10 +121,19 @@ export default function AdminProductForm() {
           imagensTexto: p.imagens.join("\n"),
           coresTexto: p.cores.join(", "),
         });
+        setVariantes(p.variantes ?? []);
       }
       setLoading(false);
     });
   }, [id, isNew]);
+
+  function updateVariante(index: number, patch: Partial<VariantForm>) {
+    setVariantes((prev) => prev.map((v, i) => (i === index ? { ...v, ...patch } : v)));
+  }
+
+  function removerVariante(index: number) {
+    setVariantes((prev) => prev.filter((_, i) => i !== index));
+  }
 
   function update<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((f) => ({ ...f, [key]: value }));
@@ -162,6 +180,10 @@ export default function AdminProductForm() {
       setError("Adicione pelo menos uma imagem do produto.");
       return;
     }
+    if (variantes.some((v) => !v.cor.trim() || v.preco <= 0)) {
+      setError("Preencha a cor e um preço maior que zero em todas as variações.");
+      return;
+    }
     setSaving(true);
     setError(null);
     const payload: Omit<Product, "id"> = {
@@ -170,11 +192,18 @@ export default function AdminProductForm() {
       cores: form.coresTexto.split(",").map((s) => s.trim()).filter(Boolean),
     };
     try {
-      if (isNew) {
-        await adminCreateProduct(payload);
-      } else {
-        await adminUpdateProduct(id!, payload);
-      }
+      const produtoId = isNew ? await adminCreateProduct(payload) : id!;
+      if (!isNew) await adminUpdateProduct(id!, payload);
+      await adminSaveProductVariants(
+        produtoId,
+        variantes.map((v) => ({
+          cor: v.cor,
+          preco: v.preco,
+          precoPromocional: v.precoPromocional,
+          estoque: v.estoque,
+          imagens: v.imagens,
+        }))
+      );
       await useCatalogStore.getState().refresh();
       navigate("/admin/produtos");
     } catch (err: any) {
@@ -391,8 +420,94 @@ export default function AdminProductForm() {
           )}
         </div>
 
+        <div className="flex flex-col gap-3 rounded-xl border border-sand p-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <p className="text-sm font-semibold">Variações por cor (preço e estoque diferentes)</p>
+              <p className="text-xs text-charcoal/50">
+                Use isso só quando cores do produto custam ou têm estoque
+                diferente. Cadastrando pelo menos uma cor aqui, o site usa
+                preço/estoque/fotos de cada variação em vez dos campos gerais
+                acima.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setVariantes((prev) => [...prev, novaVariante()])}
+              className="flex flex-none items-center gap-2 rounded-full border border-sand px-4 py-2 text-sm font-semibold hover:bg-wood-100"
+            >
+              <FiPlus size={15} /> Adicionar cor
+            </button>
+          </div>
+
+          {variantes.length > 0 && (
+            <div className="flex flex-col gap-4">
+              {variantes.map((v, i) => (
+                <div key={v.id ?? i} className="flex flex-col gap-3 rounded-xl bg-wood-50 p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="grid flex-1 grid-cols-2 gap-3 sm:grid-cols-4">
+                      <Field label="Cor">
+                        <input
+                          value={v.cor}
+                          onChange={(e) => updateVariante(i, { cor: e.target.value })}
+                          className="input"
+                        />
+                      </Field>
+                      <Field label="Preço (R$)">
+                        <input
+                          type="number"
+                          step="0.01"
+                          min={0}
+                          value={v.preco}
+                          onChange={(e) => updateVariante(i, { preco: Number(e.target.value) })}
+                          className="input"
+                        />
+                      </Field>
+                      <Field label="Preço promo. (R$)">
+                        <input
+                          type="number"
+                          step="0.01"
+                          min={0}
+                          value={v.precoPromocional ?? ""}
+                          onChange={(e) =>
+                            updateVariante(i, {
+                              precoPromocional: e.target.value ? Number(e.target.value) : null,
+                            })
+                          }
+                          className="input"
+                        />
+                      </Field>
+                      <Field label="Estoque">
+                        <input
+                          type="number"
+                          min={0}
+                          value={v.estoque}
+                          onChange={(e) => updateVariante(i, { estoque: Number(e.target.value) })}
+                          className="input"
+                        />
+                      </Field>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => removerVariante(i)}
+                      aria-label="Remover cor"
+                      className="mt-6 flex-none rounded-full p-2 text-offer hover:bg-offer/10"
+                    >
+                      <FiX size={16} />
+                    </button>
+                  </div>
+                  <VariantImagesField
+                    value={v.imagens}
+                    onChange={(imgs) => updateVariante(i, { imagens: imgs })}
+                  />
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Field label="Cores (separadas por vírgula)">
+          <Field label="Cores (separadas por vírgula) — só quando o preço/estoque não muda">
             <input
               value={form.coresTexto}
               onChange={(e) => update("coresTexto", e.target.value)}

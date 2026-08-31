@@ -21,7 +21,14 @@ export default function AdminDashboard() {
     }
   }, []);
 
-  const estoqueBaixo = produtos.filter((p) => p.estoque <= 3);
+  // Quando o produto tem variações por cor, olha o estoque de cada cor
+  // separado (é isso que decide se dá pra vender ou não).
+  const linhasEstoque = produtos.flatMap((p) =>
+    (p.variantes?.length ?? 0) > 0
+      ? p.variantes!.map((v) => ({ id: v.id, nome: `${p.nome} — ${v.cor}`, estoque: v.estoque }))
+      : [{ id: p.id, nome: p.nome, estoque: p.estoque }]
+  );
+  const estoqueBaixo = linhasEstoque.filter((l) => l.estoque <= 3);
   const faturamento = pedidos.reduce((acc, p) => acc + p.total, 0);
 
   return (
@@ -63,10 +70,10 @@ export default function AdminDashboard() {
           <p className="text-sm text-charcoal/60">Nenhum produto com estoque baixo.</p>
         ) : (
           <ul className="flex flex-col gap-2">
-            {estoqueBaixo.map((p) => (
-              <li key={p.id} className="flex justify-between gap-3 text-sm">
-                <span className="min-w-0 truncate">{p.nome}</span>
-                <span className="flex-none font-semibold text-offer">{p.estoque} un.</span>
+            {estoqueBaixo.map((l) => (
+              <li key={l.id} className="flex justify-between gap-3 text-sm">
+                <span className="min-w-0 truncate">{l.nome}</span>
+                <span className="flex-none font-semibold text-offer">{l.estoque} un.</span>
               </li>
             ))}
           </ul>

@@ -38,7 +38,7 @@ export default function CartPage() {
         <ul className="flex flex-col gap-3 sm:hidden">
           {items.map((item) => (
             <li
-              key={item.productId}
+              key={`${item.productId}:${item.varianteId ?? ""}`}
               className="flex gap-3 rounded-xl bg-white p-3 shadow-card"
             >
               <img
@@ -50,9 +50,14 @@ export default function CartPage() {
                 <div className="flex items-start justify-between gap-2">
                   <span className="text-sm font-medium leading-snug">
                     {item.nome}
+                    {item.cor && (
+                      <span className="block text-xs font-normal text-charcoal/50">
+                        Cor: {item.cor}
+                      </span>
+                    )}
                   </span>
                   <button
-                    onClick={() => removeItem(item.productId)}
+                    onClick={() => removeItem(item.productId, item.varianteId)}
                     className="flex-none text-charcoal/40 hover:text-offer"
                     aria-label="Remover"
                   >
@@ -65,7 +70,7 @@ export default function CartPage() {
                 <div className="mt-2 flex items-center justify-between">
                   <div className="flex items-center rounded-full border border-sand">
                     <button
-                      onClick={() => decrement(item.productId)}
+                      onClick={() => decrement(item.productId, item.varianteId)}
                       className="p-1.5 hover:bg-wood-100"
                       aria-label="Diminuir"
                     >
@@ -75,7 +80,7 @@ export default function CartPage() {
                       {item.quantidade}
                     </span>
                     <button
-                      onClick={() => increment(item.productId)}
+                      onClick={() => increment(item.productId, item.varianteId)}
                       disabled={item.quantidade >= item.estoqueDisponivel}
                       className="p-1.5 hover:bg-wood-100 disabled:opacity-30"
                       aria-label="Aumentar"
@@ -106,7 +111,7 @@ export default function CartPage() {
             </thead>
             <tbody>
               {items.map((item) => (
-                <tr key={item.productId} className="border-b border-sand/60">
+                <tr key={`${item.productId}:${item.varianteId ?? ""}`} className="border-b border-sand/60">
                   <td className="py-4">
                     <div className="flex items-center gap-3">
                       <img
@@ -116,13 +121,18 @@ export default function CartPage() {
                       />
                       <span className="text-sm font-medium lg:text-base">
                         {item.nome}
+                        {item.cor && (
+                          <span className="block text-xs font-normal text-charcoal/50">
+                            Cor: {item.cor}
+                          </span>
+                        )}
                       </span>
                     </div>
                   </td>
                   <td className="py-4">
                     <div className="flex w-fit items-center rounded-full border border-sand">
                       <button
-                        onClick={() => decrement(item.productId)}
+                        onClick={() => decrement(item.productId, item.varianteId)}
                         className="p-2 hover:bg-wood-100"
                         aria-label="Diminuir"
                       >
@@ -132,7 +142,7 @@ export default function CartPage() {
                         {item.quantidade}
                       </span>
                       <button
-                        onClick={() => increment(item.productId)}
+                        onClick={() => increment(item.productId, item.varianteId)}
                         disabled={item.quantidade >= item.estoqueDisponivel}
                         className="p-2 hover:bg-wood-100 disabled:opacity-30"
                         aria-label="Aumentar"
@@ -149,7 +159,7 @@ export default function CartPage() {
                   </td>
                   <td className="py-4">
                     <button
-                      onClick={() => removeItem(item.productId)}
+                      onClick={() => removeItem(item.productId, item.varianteId)}
                       className="text-charcoal/40 hover:text-offer"
                       aria-label="Remover"
                     >

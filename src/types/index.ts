@@ -6,6 +6,20 @@ export interface Category {
   imagem: string;
 }
 
+/**
+ * Uma variação de cor com preço, estoque e fotos próprios. Use isso quando
+ * cores diferentes do mesmo produto custam ou têm estoque diferente. Para
+ * cores que são só informativas (mesmo preço/estoque), use `Product.cores`.
+ */
+export interface ProductVariant {
+  id: string;
+  cor: string;
+  preco: number;
+  precoPromocional: number | null;
+  estoque: number;
+  imagens: string[];
+}
+
 export interface Product {
   id: string;
   nome: string;
@@ -31,10 +45,14 @@ export interface Product {
   altura?: number;
   largura?: number;
   comprimento?: number;
+  /** Se não vazio, cada cor tem seu próprio preço/estoque/fotos. */
+  variantes?: ProductVariant[];
 }
 
 export interface CartItem {
   productId: string;
+  varianteId?: string | null;
+  cor?: string | null;
   nome: string;
   imagem: string;
   precoUnitario: number;

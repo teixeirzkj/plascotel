@@ -52,6 +52,22 @@ alter table produtos add column if not exists altura numeric(10, 2);
 alter table produtos add column if not exists largura numeric(10, 2);
 alter table produtos add column if not exists comprimento numeric(10, 2);
 
+-- Variações de cor com preço, estoque e fotos próprios (opcional). Um
+-- produto sem linhas aqui continua usando preço/estoque/fotos da tabela
+-- "produtos" normalmente — variações só entram em jogo quando cadastradas.
+create table if not exists produto_variantes (
+  id uuid primary key default gen_random_uuid(),
+  produto_id uuid not null references produtos(id) on delete cascade,
+  cor text not null,
+  preco numeric(10, 2) not null,
+  preco_promocional numeric(10, 2),
+  estoque integer not null default 0 check (estoque >= 0),
+  imagens text[] not null default '{}',
+  ordem integer not null default 0,
+  criado_em timestamptz not null default now(),
+  unique (produto_id, cor)
+);
+
 create table if not exists pedidos (
   id uuid primary key default gen_random_uuid(),
   numero serial,
@@ -68,10 +84,14 @@ create table if not exists pedido_itens (
   id uuid primary key default gen_random_uuid(),
   pedido_id uuid not null references pedidos(id) on delete cascade,
   produto_id uuid references produtos(id) on delete set null,
+  variante_id uuid references produto_variantes(id) on delete set null,
   nome text not null,
   preco_unitario numeric(10, 2) not null,
   quantidade integer not null check (quantidade > 0)
 );
+
+-- Garante a coluna em bancos criados antes desta versão do schema.
+alter table pedido_itens add column if not exists variante_id uuid references produto_variantes(id) on delete set null;
 
 -- ---------------------------------------------------------
 -- Estoque automático
@@ -99,6 +119,7 @@ declare
   v_criado_em timestamptz;
   v_item jsonb;
   v_estoque_atual integer;
+  v_variante_id uuid;
 begin
   insert into pedidos (subtotal, frete, total, forma_pagamento, cliente)
   values (p_subtotal, p_frete, p_total, p_forma_pagamento, p_cliente)
@@ -107,7 +128,27 @@ begin
 
   for v_item in select * from jsonb_array_elements(p_itens)
   loop
-    if (v_item->>'produto_id') is not null then
+    v_variante_id := nullif(v_item->>'variante_id', '')::uuid;
+
+    if v_variante_id is not null then
+      -- Item com variação de cor: a baixa é no estoque da variação.
+      select estoque into v_estoque_atual
+      from produto_variantes
+      where produto_variantes.id = v_variante_id
+      for update;
+
+      if v_estoque_atual is null then
+        raise exception 'Variação % não encontrada', v_variante_id;
+      end if;
+
+      if v_estoque_atual < (v_item->>'quantidade')::integer then
+        raise exception 'Estoque insuficiente para o produto %', v_item->>'nome';
+      end if;
+
+      update produto_variantes
+      set estoque = estoque - (v_item->>'quantidade')::integer
+      where produto_variantes.id = v_variante_id;
+    elsif (v_item->>'produto_id') is not null then
       select estoque into v_estoque_atual
       from produtos
       where produtos.id = (v_item->>'produto_id')::uuid
@@ -126,10 +167,11 @@ begin
       where produtos.id = (v_item->>'produto_id')::uuid;
     end if;
 
-    insert into pedido_itens (pedido_id, produto_id, nome, preco_unitario, quantidade)
+    insert into pedido_itens (pedido_id, produto_id, variante_id, nome, preco_unitario, quantidade)
     values (
       v_pedido_id,
       nullif(v_item->>'produto_id', '')::uuid,
+      v_variante_id,
       v_item->>'nome',
       (v_item->>'preco_unitario')::numeric,
       (v_item->>'quantidade')::integer
@@ -155,15 +197,63 @@ begin
     set estoque = p.estoque + i.quantidade
     from pedido_itens i
     where i.pedido_id = new.id
-      and i.produto_id = p.id;
+      and i.produto_id = p.id
+      and i.variante_id is null;
+
+    update produto_variantes v
+    set estoque = v.estoque + i.quantidade
+    from pedido_itens i
+    where i.pedido_id = new.id
+      and i.variante_id = v.id;
   elsif old.status = 'cancelado' and new.status <> 'cancelado' then
     update produtos p
     set estoque = greatest(p.estoque - i.quantidade, 0)
     from pedido_itens i
     where i.pedido_id = new.id
-      and i.produto_id = p.id;
+      and i.produto_id = p.id
+      and i.variante_id is null;
+
+    update produto_variantes v
+    set estoque = greatest(v.estoque - i.quantidade, 0)
+    from pedido_itens i
+    where i.pedido_id = new.id
+      and i.variante_id = v.id;
   end if;
   return new;
+end;
+$$;
+
+-- Substitui de uma vez todas as variações de cor de um produto (usado pelo
+-- admin ao salvar o formulário de produto). Fica em uma função só para que
+-- apagar as antigas e inserir as novas aconteça em uma única transação.
+create or replace function admin_salvar_variantes(p_produto_id uuid, p_variantes jsonb)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  -- É "security definer" (ignora RLS), então precisa checar autenticação
+  -- manualmente: só o admin logado pode reescrever variações.
+  if auth.role() <> 'authenticated' then
+    raise exception 'Não autorizado.';
+  end if;
+
+  delete from produto_variantes where produto_id = p_produto_id;
+
+  insert into produto_variantes (produto_id, cor, preco, preco_promocional, estoque, imagens, ordem)
+  select
+    p_produto_id,
+    v->>'cor',
+    (v->>'preco')::numeric,
+    nullif(v->>'precoPromocional', '')::numeric,
+    (v->>'estoque')::integer,
+    coalesce(
+      (select array_agg(x) from jsonb_array_elements_text(v->'imagens') x),
+      '{}'
+    ),
+    (ord - 1)::integer
+  from jsonb_array_elements(coalesce(p_variantes, '[]'::jsonb)) with ordinality as t(v, ord);
 end;
 $$;
 
@@ -179,16 +269,21 @@ create trigger trg_restaurar_estoque
 
 alter table categorias enable row level security;
 alter table produtos enable row level security;
+alter table produto_variantes enable row level security;
 alter table pedidos enable row level security;
 alter table pedido_itens enable row level security;
 
--- Qualquer visitante do site pode ver categorias e produtos.
+-- Qualquer visitante do site pode ver categorias, produtos e variações.
 drop policy if exists "categorias_select_publico" on categorias;
 create policy "categorias_select_publico" on categorias
   for select using (true);
 
 drop policy if exists "produtos_select_publico" on produtos;
 create policy "produtos_select_publico" on produtos
+  for select using (true);
+
+drop policy if exists "produto_variantes_select_publico" on produto_variantes;
+create policy "produto_variantes_select_publico" on produto_variantes
   for select using (true);
 
 -- Somente administradores logados (Supabase Auth) podem criar, editar
@@ -200,6 +295,11 @@ create policy "categorias_admin_all" on categorias
 
 drop policy if exists "produtos_admin_all" on produtos;
 create policy "produtos_admin_all" on produtos
+  for all using (auth.role() = 'authenticated')
+  with check (auth.role() = 'authenticated');
+
+drop policy if exists "produto_variantes_admin_all" on produto_variantes;
+create policy "produto_variantes_admin_all" on produto_variantes
   for all using (auth.role() = 'authenticated')
   with check (auth.role() = 'authenticated');
 

@@ -5,6 +5,7 @@ import { FiMinus, FiPlus, FiShoppingBag, FiTruck, FiRefreshCw, FiCreditCard } fr
 import { useCatalogStore } from "../store/catalog";
 import { formatCurrency, discountPercent } from "../lib/format";
 import { useCartStore } from "../store/cart";
+import { imagensDaVariante } from "../lib/productPricing";
 import { WhatsAppButton } from "../components/WhatsAppButton";
 import { STORE_NAME } from "../config/store";
 
@@ -16,24 +17,43 @@ export default function ProductDetail() {
   const categories = useCatalogStore((s) => s.categories);
   const loaded = useCatalogStore((s) => s.loaded);
   const product = slug ? products.find((p) => p.slug === slug) : undefined;
+  const temVariantes = (product?.variantes?.length ?? 0) > 0;
 
   const [activeImage, setActiveImage] = useState(0);
   const [cor, setCor] = useState(product?.cores[0] ?? "");
+  const [varianteId, setVarianteId] = useState<string | null>(product?.variantes?.[0]?.id ?? null);
   const [quantidade, setQuantidade] = useState(1);
   const addItem = useCartStore((s) => s.addItem);
 
+  const variante = temVariantes
+    ? product!.variantes!.find((v) => v.id === varianteId) ?? product!.variantes![0]
+    : null;
+
   useEffect(() => {
     if (product && searchParams.get("comprar") === "1") {
-      addItem(product, 1);
+      addItem(product, 1, variante);
       navigate("/checkout");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [product]);
 
   useEffect(() => {
-    if (product && !cor) setCor(product.cores[0] ?? "");
+    if (!product) return;
+    if (temVariantes) {
+      if (!varianteId) setVarianteId(product.variantes![0].id);
+    } else if (!cor) {
+      setCor(product.cores[0] ?? "");
+    }
+    setActiveImage(0);
+    setQuantidade(1);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [product]);
+
+  useEffect(() => {
+    setActiveImage(0);
+    setQuantidade(1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [varianteId]);
 
   // Espera o catálogo carregar do banco antes de decidir que o produto não
   // existe (evita redirecionar antes da resposta do Supabase chegar).
@@ -41,8 +61,14 @@ export default function ProductDetail() {
   if (!product) return <Navigate to="/moveis" replace />;
 
   const categoria = categories.find((c) => c.id === product.categoriaId);
-  const temPromo = product.precoPromocional !== null;
-  const disponivel = product.estoque > 0;
+  const precoBase = variante ? variante.preco : product.preco;
+  const precoAtual = variante
+    ? variante.precoPromocional ?? variante.preco
+    : product.precoPromocional ?? product.preco;
+  const temPromo = variante ? variante.precoPromocional !== null : product.precoPromocional !== null;
+  const estoqueAtual = variante ? variante.estoque : product.estoque;
+  const disponivel = estoqueAtual > 0;
+  const imagensAtuais = imagensDaVariante(product, variante);
 
   return (
     <section className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-10 md:px-10 md:py-14">
@@ -55,14 +81,14 @@ export default function ProductDetail() {
             className="aspect-square overflow-hidden rounded-2xl bg-wood-50"
           >
             <img
-              src={product.imagens[activeImage]}
+              src={imagensAtuais[activeImage] ?? imagensAtuais[0]}
               alt={product.nome}
               className="h-full w-full object-cover transition-transform duration-500 hover:scale-105"
             />
           </motion.div>
-          {product.imagens.length > 1 && (
+          {imagensAtuais.length > 1 && (
             <div className="mt-3 flex gap-3">
-              {product.imagens.map((img, i) => (
+              {imagensAtuais.map((img, i) => (
                 <button
                   key={img}
                   onClick={() => setActiveImage(i)}
@@ -91,15 +117,15 @@ export default function ProductDetail() {
             {temPromo && (
               <div className="flex items-center gap-2">
                 <span className="text-sm text-charcoal/40 line-through sm:text-base">
-                  {formatCurrency(product.preco)}
+                  {formatCurrency(precoBase)}
                 </span>
                 <span className="rounded-full bg-offer px-2 py-0.5 text-[11px] font-bold text-white">
-                  -{discountPercent(product.preco, product.precoPromocional!)}%
+                  -{discountPercent(precoBase, precoAtual)}%
                 </span>
               </div>
             )}
             <p className="font-display text-2xl font-semibold sm:text-3xl">
-              {formatCurrency(product.precoPromocional ?? product.preco)}
+              {formatCurrency(precoAtual)}
             </p>
           </div>
 
@@ -107,25 +133,48 @@ export default function ProductDetail() {
             {product.descricao}
           </p>
 
-          {product.cores.length > 0 && (
+          {temVariantes ? (
             <div className="mt-7 sm:mt-8">
               <h3 className="mb-2.5 text-sm font-semibold">Cor</h3>
               <div className="flex flex-wrap gap-2">
-                {product.cores.map((c) => (
+                {product.variantes!.map((v) => (
                   <button
-                    key={c}
-                    onClick={() => setCor(c)}
-                    className={`rounded-full border px-4 py-2 text-sm ${
-                      cor === c
+                    key={v.id}
+                    onClick={() => setVarianteId(v.id)}
+                    disabled={v.estoque === 0}
+                    className={`rounded-full border px-4 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-40 ${
+                      varianteId === v.id
                         ? "border-charcoal bg-charcoal text-white"
                         : "border-sand hover:bg-wood-100"
                     }`}
                   >
-                    {c}
+                    {v.cor}
+                    {v.estoque === 0 && " (esgotado)"}
                   </button>
                 ))}
               </div>
             </div>
+          ) : (
+            product.cores.length > 0 && (
+              <div className="mt-7 sm:mt-8">
+                <h3 className="mb-2.5 text-sm font-semibold">Cor</h3>
+                <div className="flex flex-wrap gap-2">
+                  {product.cores.map((c) => (
+                    <button
+                      key={c}
+                      onClick={() => setCor(c)}
+                      className={`rounded-full border px-4 py-2 text-sm ${
+                        cor === c
+                          ? "border-charcoal bg-charcoal text-white"
+                          : "border-sand hover:bg-wood-100"
+                      }`}
+                    >
+                      {c}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )
           )}
 
           <div className="mt-7 sm:mt-8">
@@ -142,7 +191,7 @@ export default function ProductDetail() {
                 <span className="w-8 text-center">{quantidade}</span>
                 <button
                   onClick={() =>
-                    setQuantidade((q) => Math.min(product.estoque, q + 1))
+                    setQuantidade((q) => Math.min(estoqueAtual, q + 1))
                   }
                   className="p-3 hover:bg-wood-100"
                   aria-label="Aumentar"
@@ -151,7 +200,7 @@ export default function ProductDetail() {
                 </button>
               </div>
               <span className="text-sm text-charcoal/60">
-                {disponivel ? `${product.estoque} em estoque` : "Fora de estoque"}
+                {disponivel ? `${estoqueAtual} em estoque` : "Fora de estoque"}
               </span>
             </div>
           </div>
@@ -159,7 +208,7 @@ export default function ProductDetail() {
           <div className="mt-8 flex flex-col gap-3 sm:mt-9 sm:flex-row">
             <button
               disabled={!disponivel}
-              onClick={() => addItem(product, quantidade)}
+              onClick={() => addItem(product, quantidade, variante)}
               className="flex flex-1 items-center justify-center gap-2 rounded-full bg-charcoal px-6 py-3.5 font-semibold text-white transition hover:bg-charcoal-800 disabled:cursor-not-allowed disabled:opacity-40"
             >
               <FiShoppingBag /> Adicionar ao carrinho
@@ -167,7 +216,7 @@ export default function ProductDetail() {
             <button
               disabled={!disponivel}
               onClick={() => {
-                addItem(product, quantidade);
+                addItem(product, quantidade, variante);
                 navigate("/checkout");
               }}
               className="flex-1 rounded-full border border-charcoal px-6 py-3.5 font-semibold text-charcoal transition hover:bg-wood-100 disabled:cursor-not-allowed disabled:opacity-40"

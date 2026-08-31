@@ -1,5 +1,5 @@
 import { supabase } from "../lib/supabase";
-import type { Category, Product } from "../types";
+import type { Category, Product, ProductVariant } from "../types";
 
 function requireSupabase() {
   if (!supabase) {
@@ -38,8 +38,13 @@ function toProductRow(p: Partial<Product>) {
 
 export async function adminCreateProduct(product: Omit<Product, "id">) {
   const db = requireSupabase();
-  const { error } = await db.from("produtos").insert(toProductRow(product));
+  const { data, error } = await db
+    .from("produtos")
+    .insert(toProductRow(product))
+    .select("id")
+    .single();
   if (error) throw error;
+  return data.id as string;
 }
 
 export async function adminUpdateProduct(id: string, product: Partial<Product>) {
@@ -54,6 +59,23 @@ export async function adminUpdateProduct(id: string, product: Partial<Product>) 
 export async function adminDeleteProduct(id: string) {
   const db = requireSupabase();
   const { error } = await db.from("produtos").delete().eq("id", id);
+  if (error) throw error;
+}
+
+/**
+ * Substitui todas as variações de cor de um produto de uma vez (apaga as
+ * antigas e insere as novas) chamando a função "admin_salvar_variantes" do
+ * banco, que faz isso em uma única transação.
+ */
+export async function adminSaveProductVariants(
+  produtoId: string,
+  variantes: Omit<ProductVariant, "id">[]
+) {
+  const db = requireSupabase();
+  const { error } = await db.rpc("admin_salvar_variantes", {
+    p_produto_id: produtoId,
+    p_variantes: variantes,
+  });
   if (error) throw error;
 }
 
@@ -144,7 +166,9 @@ export async function adminUpdateOrderStatus(id: string, status: string) {
 
 export interface ManualSaleItem {
   produtoId: string;
+  varianteId?: string | null;
   nome: string;
+  cor?: string | null;
   precoUnitario: number;
   quantidade: number;
 }
@@ -152,8 +176,9 @@ export interface ManualSaleItem {
 /**
  * Lança uma venda manual (ex: venda feita na loja física) usando a mesma
  * função `criar_pedido` do checkout do site — ela dá baixa no estoque de
- * cada item dentro de uma única transação atômica, então o estoque fica
- * consistente independente de a venda ter sido online ou presencial.
+ * cada item (do produto ou da variação de cor) dentro de uma única
+ * transação atômica, então o estoque fica consistente independente de a
+ * venda ter sido online ou presencial.
  */
 export async function createManualSale(
   itens: ManualSaleItem[],
@@ -164,7 +189,8 @@ export async function createManualSale(
   const { data, error } = await db.rpc("criar_pedido", {
     p_itens: itens.map((i) => ({
       produto_id: i.produtoId,
-      nome: i.nome,
+      variante_id: i.varianteId ?? null,
+      nome: i.cor ? `${i.nome} (${i.cor})` : i.nome,
       preco_unitario: i.precoUnitario,
       quantidade: i.quantidade,
     })),

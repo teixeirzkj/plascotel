@@ -6,6 +6,10 @@ import { createManualSale, type ManualSaleItem } from "../../data/adminRepositor
 import { formatCurrency } from "../../lib/format";
 import type { Product } from "../../types";
 
+function chaveItem(i: ManualSaleItem) {
+  return `${i.produtoId}:${i.varianteId ?? ""}`;
+}
+
 export default function AdminVendaManual() {
   const navigate = useNavigate();
   const [produtos, setProdutos] = useState<Product[]>([]);
@@ -13,6 +17,7 @@ export default function AdminVendaManual() {
   const [nomeCliente, setNomeCliente] = useState("");
   const [itens, setItens] = useState<ManualSaleItem[]>([]);
   const [produtoSelecionado, setProdutoSelecionado] = useState("");
+  const [varianteSelecionada, setVarianteSelecionada] = useState<string>("");
   const [quantidade, setQuantidade] = useState(1);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -28,44 +33,65 @@ export default function AdminVendaManual() {
   }, []);
 
   const produtoAtual = produtos.find((p) => p.id === produtoSelecionado);
+  const temVariantes = (produtoAtual?.variantes?.length ?? 0) > 0;
 
+  useEffect(() => {
+    setVarianteSelecionada(produtoAtual?.variantes?.[0]?.id ?? "");
+  }, [produtoSelecionado]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const variante = temVariantes
+    ? produtoAtual!.variantes!.find((v) => v.id === varianteSelecionada)
+    : undefined;
+
+  const precoUnitario = variante
+    ? variante.precoPromocional ?? variante.preco
+    : produtoAtual
+    ? produtoAtual.precoPromocional ?? produtoAtual.preco
+    : 0;
+  const estoqueBase = variante ? variante.estoque : produtoAtual?.estoque ?? 0;
+
+  const chaveAtual = `${produtoSelecionado}:${variante?.id ?? ""}`;
   const jaAdicionado = itens.reduce(
-    (acc, i) => (i.produtoId === produtoSelecionado ? acc + i.quantidade : acc),
+    (acc, i) => (chaveItem(i) === chaveAtual ? acc + i.quantidade : acc),
     0
   );
-  const estoqueDisponivel = produtoAtual ? produtoAtual.estoque - jaAdicionado : 0;
+  const estoqueDisponivel = estoqueBase - jaAdicionado;
 
   function handleAdicionarItem() {
     setError(null);
     if (!produtoAtual) return;
+    if (temVariantes && !variante) return;
     if (quantidade < 1) return;
     if (quantidade > estoqueDisponivel) {
       setError(`Estoque insuficiente. Disponível: ${estoqueDisponivel} un.`);
       return;
     }
 
+    const novoItem: ManualSaleItem = {
+      produtoId: produtoAtual.id,
+      varianteId: variante?.id ?? null,
+      nome: produtoAtual.nome,
+      cor: variante?.cor ?? null,
+      precoUnitario,
+      quantidade,
+    };
+
     setItens((prev) => {
-      const existente = prev.find((i) => i.produtoId === produtoAtual.id);
+      const existente = prev.find((i) => chaveItem(i) === chaveItem(novoItem));
       if (existente) {
         return prev.map((i) =>
-          i.produtoId === produtoAtual.id ? { ...i, quantidade: i.quantidade + quantidade } : i
+          chaveItem(i) === chaveItem(novoItem)
+            ? { ...i, quantidade: i.quantidade + quantidade }
+            : i
         );
       }
-      return [
-        ...prev,
-        {
-          produtoId: produtoAtual.id,
-          nome: produtoAtual.nome,
-          precoUnitario: produtoAtual.precoPromocional ?? produtoAtual.preco,
-          quantidade,
-        },
-      ];
+      return [...prev, novoItem];
     });
     setQuantidade(1);
   }
 
-  function handleRemoverItem(produtoId: string) {
-    setItens((prev) => prev.filter((i) => i.produtoId !== produtoId));
+  function handleRemoverItem(item: ManualSaleItem) {
+    setItens((prev) => prev.filter((i) => chaveItem(i) !== chaveItem(item)));
   }
 
   const total = itens.reduce((acc, i) => acc + i.precoUnitario * i.quantidade, 0);
@@ -118,7 +144,7 @@ export default function AdminVendaManual() {
           />
         </label>
 
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_auto_auto] sm:items-end">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <label className="flex flex-col gap-1.5 text-sm">
             <span className="font-medium text-charcoal/80">Produto</span>
             <select
@@ -129,11 +155,32 @@ export default function AdminVendaManual() {
               {produtos.length === 0 && <option value="">Nenhum produto</option>}
               {produtos.map((p) => (
                 <option key={p.id} value={p.id}>
-                  {p.nome} — estoque: {p.estoque}
+                  {p.nome}
+                  {(p.variantes?.length ?? 0) === 0 ? ` — estoque: ${p.estoque}` : ""}
                 </option>
               ))}
             </select>
           </label>
+
+          {temVariantes && (
+            <label className="flex flex-col gap-1.5 text-sm">
+              <span className="font-medium text-charcoal/80">Cor</span>
+              <select
+                value={varianteSelecionada}
+                onChange={(e) => setVarianteSelecionada(e.target.value)}
+                className="input"
+              >
+                {produtoAtual!.variantes!.map((v) => (
+                  <option key={v.id} value={v.id}>
+                    {v.cor} — estoque: {v.estoque}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+        </div>
+
+        <div className="grid grid-cols-[1fr_auto] items-end gap-3">
           <label className="flex flex-col gap-1.5 text-sm">
             <span className="font-medium text-charcoal/80">Qtd.</span>
             <input
@@ -147,7 +194,7 @@ export default function AdminVendaManual() {
           <button
             type="button"
             onClick={handleAdicionarItem}
-            disabled={!produtoAtual || estoqueDisponivel <= 0}
+            disabled={!produtoAtual || (temVariantes && !variante) || estoqueDisponivel <= 0}
             className="flex h-fit items-center gap-2 rounded-full bg-charcoal px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
           >
             <FiPlus size={16} /> Adicionar
@@ -155,7 +202,7 @@ export default function AdminVendaManual() {
         </div>
         {produtoAtual && (
           <p className="-mt-2 text-xs text-charcoal/50">
-            Disponível: {estoqueDisponivel} un. · {formatCurrency(produtoAtual.precoPromocional ?? produtoAtual.preco)}
+            Disponível: {estoqueDisponivel} un. · {formatCurrency(precoUnitario)}
           </p>
         )}
 
@@ -165,15 +212,16 @@ export default function AdminVendaManual() {
           ) : (
             <ul className="flex flex-col gap-2">
               {itens.map((i) => (
-                <li key={i.produtoId} className="flex items-center justify-between gap-3 text-sm">
+                <li key={chaveItem(i)} className="flex items-center justify-between gap-3 text-sm">
                   <span className="min-w-0 truncate">
-                    {i.nome} × {i.quantidade}
+                    {i.nome}
+                    {i.cor && ` (${i.cor})`} × {i.quantidade}
                   </span>
                   <div className="flex flex-none items-center gap-3">
                     <span>{formatCurrency(i.precoUnitario * i.quantidade)}</span>
                     <button
                       type="button"
-                      onClick={() => handleRemoverItem(i.produtoId)}
+                      onClick={() => handleRemoverItem(i)}
                       aria-label="Remover item"
                       className="text-offer hover:opacity-70"
                     >
