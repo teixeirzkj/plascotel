@@ -3,6 +3,7 @@ import type { Category, Product } from "../types";
 import { fetchCategories, fetchProducts } from "../data/repository";
 import { products as localProducts } from "../data/products";
 import { categories as localCategories } from "../data/categories";
+import { isSupabaseConfigured } from "../lib/supabase";
 
 interface CatalogState {
   products: Product[];
@@ -14,16 +15,15 @@ interface CatalogState {
 }
 
 /**
- * Catálogo em memória usado pela loja inteira. Começa com os dados de
- * exemplo (para a primeira renderização já mostrar algo), e assim que o
- * Supabase responde, troca automaticamente pelos dados reais — sem
- * recarregar a página e sem nenhuma tela precisar saber de onde veio o
- * dado. Cadastrar um produto no /admin e voltar para a loja (ou dar
- * refresh) já mostra o produto novo.
+ * Catálogo em memória usado pela loja inteira. Com o Supabase configurado,
+ * começa vazio e só mostra produto depois que os dados reais chegarem —
+ * assim as fotos de exemplo (sofá, mesa etc.) nunca aparecem piscando na
+ * tela antes do catálogo de verdade carregar. Os dados de exemplo só
+ * servem para rodar o site sem Supabase configurado (modo demonstração).
  */
 export const useCatalogStore = create<CatalogState>((set, get) => ({
-  products: localProducts,
-  categories: localCategories,
+  products: isSupabaseConfigured ? [] : localProducts,
+  categories: isSupabaseConfigured ? [] : localCategories,
   loading: false,
   loaded: false,
   load: async () => {
