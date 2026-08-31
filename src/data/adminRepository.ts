@@ -137,3 +137,39 @@ export async function adminUpdateOrderStatus(id: string, status: string) {
   const { error } = await db.from("pedidos").update({ status }).eq("id", id);
   if (error) throw error;
 }
+
+export interface ManualSaleItem {
+  produtoId: string;
+  nome: string;
+  precoUnitario: number;
+  quantidade: number;
+}
+
+/**
+ * Lança uma venda manual (ex: venda feita na loja física) usando a mesma
+ * função `criar_pedido` do checkout do site — ela dá baixa no estoque de
+ * cada item dentro de uma única transação atômica, então o estoque fica
+ * consistente independente de a venda ter sido online ou presencial.
+ */
+export async function createManualSale(
+  itens: ManualSaleItem[],
+  nomeCliente: string
+) {
+  const db = requireSupabase();
+  const subtotal = itens.reduce((acc, i) => acc + i.precoUnitario * i.quantidade, 0);
+  const { data, error } = await db.rpc("criar_pedido", {
+    p_itens: itens.map((i) => ({
+      produto_id: i.produtoId,
+      nome: i.nome,
+      preco_unitario: i.precoUnitario,
+      quantidade: i.quantidade,
+    })),
+    p_cliente: { nomeCompleto: nomeCliente || "Venda balcão" },
+    p_subtotal: subtotal,
+    p_frete: 0,
+    p_total: subtotal,
+    p_forma_pagamento: "manual",
+  });
+  if (error) throw error;
+  return data as { id: string; numero: number; criado_em: string };
+}

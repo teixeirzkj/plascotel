@@ -12,10 +12,15 @@ const statusColor: Record<string, string> = {
   cancelado: "bg-offer",
 };
 
+function mesAtual() {
+  return new Date().toISOString().slice(0, 7); // "AAAA-MM"
+}
+
 export default function AdminOrders() {
   const [pedidos, setPedidos] = useState<AdminOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [mes, setMes] = useState<string>(""); // "" = todos os meses
 
   function reload() {
     setLoading(true);
@@ -26,6 +31,12 @@ export default function AdminOrders() {
   }
 
   useEffect(reload, []);
+
+  const pedidosFiltrados = mes
+    ? pedidos.filter((p) => p.criadoEm.slice(0, 7) === mes)
+    : pedidos;
+
+  const totalFiltrado = pedidosFiltrados.reduce((acc, p) => acc + p.total, 0);
 
   async function handleStatusChange(id: string, status: string) {
     try {
@@ -38,21 +49,57 @@ export default function AdminOrders() {
 
   return (
     <div>
-      <h1 className="mb-8 font-display text-2xl sm:text-3xl">Pedidos</h1>
+      <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
+        <h1 className="font-display text-2xl sm:text-3xl">Pedidos</h1>
+        <label className="flex flex-col gap-1.5 text-sm">
+          <span className="font-medium text-charcoal/80">Filtrar por mês</span>
+          <div className="flex gap-2">
+            <input
+              type="month"
+              value={mes}
+              max={mesAtual()}
+              onChange={(e) => setMes(e.target.value)}
+              className="input"
+            />
+            {mes && (
+              <button
+                type="button"
+                onClick={() => setMes("")}
+                className="rounded-full border border-sand px-4 text-sm font-medium hover:bg-wood-100"
+              >
+                Limpar
+              </button>
+            )}
+          </div>
+        </label>
+      </div>
 
       {error && <p className="mb-4 text-sm text-offer">{error}</p>}
+
+      {!loading && (
+        <p className="mb-4 text-sm text-charcoal/60">
+          {pedidosFiltrados.length} pedido(s) · Total: {formatCurrency(totalFiltrado)}
+        </p>
+      )}
 
       <div className="flex flex-col gap-4">
         {loading ? (
           <p className="text-charcoal/60">Carregando...</p>
-        ) : pedidos.length === 0 ? (
-          <p className="text-charcoal/60">Nenhum pedido ainda.</p>
+        ) : pedidosFiltrados.length === 0 ? (
+          <p className="text-charcoal/60">Nenhum pedido neste período.</p>
         ) : (
-          pedidos.map((p) => (
+          pedidosFiltrados.map((p) => (
             <div key={p.id} className="rounded-2xl bg-white p-5 shadow-card">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <p className="font-display text-lg">Pedido #{p.numero}</p>
+                  <p className="font-display text-lg">
+                    Pedido #{p.numero}
+                    {p.formaPagamento === "manual" && (
+                      <span className="ml-2 rounded-full bg-wood-100 px-2 py-0.5 text-xs font-semibold text-wood-700">
+                        Venda balcão
+                      </span>
+                    )}
+                  </p>
                   <p className="text-sm text-charcoal/60">
                     {p.cliente?.nomeCompleto} — {new Date(p.criadoEm).toLocaleString("pt-BR")}
                   </p>

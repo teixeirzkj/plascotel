@@ -5,6 +5,7 @@ import { fetchProducts, fetchCategories } from "../../data/repository";
 import { fetchAdminOrders, type AdminOrder } from "../../data/adminRepository";
 import { isSupabaseConfigured } from "../../lib/supabase";
 import { formatCurrency } from "../../lib/format";
+import { SalesChart } from "../../components/admin/SalesChart";
 import type { Product, Category } from "../../types";
 
 export default function AdminDashboard() {
@@ -49,6 +50,12 @@ export default function AdminDashboard() {
           to="/admin/pedidos"
         />
       </div>
+
+      {isSupabaseConfigured && (
+        <div className="mt-10">
+          <SalesChart pedidos={pedidos} />
+        </div>
+      )}
 
       <div className="mt-10 rounded-2xl bg-white p-6 shadow-card">
         <h2 className="mb-4 font-display text-lg">Estoque baixo (≤ 3 unidades)</h2>

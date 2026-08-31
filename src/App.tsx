@@ -21,6 +21,7 @@ import AdminProducts from "./pages/admin/AdminProducts";
 import AdminProductForm from "./pages/admin/AdminProductForm";
 import AdminCategories from "./pages/admin/AdminCategories";
 import AdminOrders from "./pages/admin/AdminOrders";
+import AdminVendaManual from "./pages/admin/AdminVendaManual";
 
 export default function App() {
   return (
@@ -104,6 +105,7 @@ export default function App() {
           <Route path="produtos/:id" element={<AdminProductForm />} />
           <Route path="categorias" element={<AdminCategories />} />
           <Route path="pedidos" element={<AdminOrders />} />
+          <Route path="venda-manual" element={<AdminVendaManual />} />
         </Route>
       </Routes>
     </BrowserRouter>

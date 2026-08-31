@@ -6,6 +6,7 @@ import {
   FiBox,
   FiTag,
   FiShoppingCart,
+  FiPlusCircle,
   FiLogOut,
   FiExternalLink,
   FiMenu,
@@ -19,6 +20,7 @@ const links = [
   { to: "/admin/produtos", label: "Produtos", icon: FiBox },
   { to: "/admin/categorias", label: "Categorias", icon: FiTag },
   { to: "/admin/pedidos", label: "Pedidos", icon: FiShoppingCart },
+  { to: "/admin/venda-manual", label: "Venda manual", icon: FiPlusCircle },
 ];
 
 export function AdminLayout() {
