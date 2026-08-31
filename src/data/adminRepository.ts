@@ -64,6 +64,47 @@ export async function adminDeleteProduct(id: string) {
 }
 
 /**
+ * Duplica um produto (e suas variações, se tiver) como um novo produto —
+ * útil pra cadastrar rápido algo parecido com um que já existe. O estoque
+ * começa zerado, para não parecer que já tem unidade disponível sem
+ * conferir de verdade.
+ */
+export async function adminDuplicateProduct(
+  product: Product,
+  slugsExistentes: string[]
+) {
+  let novoSlug = `${product.slug}-copia`;
+  let contador = 2;
+  while (slugsExistentes.includes(novoSlug)) {
+    novoSlug = `${product.slug}-copia-${contador}`;
+    contador++;
+  }
+
+  const novoId = await adminCreateProduct({
+    ...product,
+    nome: `${product.nome} (cópia)`,
+    slug: novoSlug,
+    estoque: 0,
+  });
+
+  if (product.variantes && product.variantes.length > 0) {
+    await adminSaveProductVariants(
+      novoId,
+      product.variantes.map((v) => ({
+        cor: v.cor,
+        tamanho: v.tamanho,
+        preco: v.preco,
+        precoPromocional: v.precoPromocional,
+        estoque: 0,
+        imagens: v.imagens,
+      }))
+    );
+  }
+
+  return novoId;
+}
+
+/**
  * Substitui todas as variações de cor de um produto de uma vez (apaga as
  * antigas e insere as novas) chamando a função "admin_salvar_variantes" do
  * banco, que faz isso em uma única transação.

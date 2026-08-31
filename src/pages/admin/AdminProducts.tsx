@@ -1,16 +1,18 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
-import { FiPlus, FiEdit2, FiTrash2 } from "react-icons/fi";
+import { Link, useNavigate } from "react-router-dom";
+import { FiPlus, FiEdit2, FiTrash2, FiCopy } from "react-icons/fi";
 import { fetchProducts } from "../../data/repository";
-import { adminDeleteProduct } from "../../data/adminRepository";
+import { adminDeleteProduct, adminDuplicateProduct } from "../../data/adminRepository";
 import { useCatalogStore } from "../../store/catalog";
 import { formatCurrency } from "../../lib/format";
 import { precoExibicao, estoqueExibicao, imagemPrincipal } from "../../lib/productPricing";
 import type { Product } from "../../types";
 
 export default function AdminProducts() {
+  const navigate = useNavigate();
   const [produtos, setProdutos] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [duplicandoId, setDuplicandoId] = useState<string | null>(null);
 
   function reload() {
     setLoading(true);
@@ -29,6 +31,22 @@ export default function AdminProducts() {
       useCatalogStore.getState().refresh();
     } catch (err: any) {
       alert(err.message ?? "Erro ao excluir produto.");
+    }
+  }
+
+  async function handleDuplicate(produto: Product) {
+    setDuplicandoId(produto.id);
+    try {
+      const novoId = await adminDuplicateProduct(
+        produto,
+        produtos.map((p) => p.slug)
+      );
+      await useCatalogStore.getState().refresh();
+      navigate(`/admin/produtos/${novoId}`);
+    } catch (err: any) {
+      alert(err.message ?? "Erro ao duplicar produto.");
+    } finally {
+      setDuplicandoId(null);
     }
   }
 
@@ -88,6 +106,14 @@ export default function AdminProducts() {
                     >
                       <FiEdit2 size={16} />
                     </Link>
+                    <button
+                      onClick={() => handleDuplicate(p)}
+                      disabled={duplicandoId === p.id}
+                      className="rounded-full p-2 hover:bg-wood-100 disabled:opacity-50"
+                      aria-label="Duplicar"
+                    >
+                      <FiCopy size={16} />
+                    </button>
                     <button
                       onClick={() => handleDelete(p.id, p.nome)}
                       className="rounded-full p-2 text-offer hover:bg-offer/10"
@@ -150,6 +176,14 @@ export default function AdminProducts() {
                         >
                           <FiEdit2 size={16} />
                         </Link>
+                        <button
+                          onClick={() => handleDuplicate(p)}
+                          disabled={duplicandoId === p.id}
+                          className="rounded-full p-2 hover:bg-wood-100 disabled:opacity-50"
+                          aria-label="Duplicar"
+                        >
+                          <FiCopy size={16} />
+                        </button>
                         <button
                           onClick={() => handleDelete(p.id, p.nome)}
                           className="rounded-full p-2 text-offer hover:bg-offer/10"
