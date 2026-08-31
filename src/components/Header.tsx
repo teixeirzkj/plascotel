@@ -16,7 +16,7 @@ import { SearchOverlay } from "./SearchOverlay";
 
 const navLinks = [
   { to: "/", label: "Início" },
-  { to: "/moveis", label: "Móveis" },
+  { to: "/moveis", label: "Produtos" },
   { to: "/categorias", label: "Categorias" },
   { to: "/ofertas", label: "Ofertas" },
   { to: "/sobre", label: "Sobre nós" },

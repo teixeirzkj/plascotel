@@ -6,6 +6,7 @@ import { fetchAdminOrders, type AdminOrder } from "../../data/adminRepository";
 import { isSupabaseConfigured } from "../../lib/supabase";
 import { formatCurrency } from "../../lib/format";
 import { SalesChart } from "../../components/admin/SalesChart";
+import { descricaoVariante } from "../../lib/productPricing";
 import type { Product, Category } from "../../types";
 
 export default function AdminDashboard() {
@@ -25,7 +26,11 @@ export default function AdminDashboard() {
   // separado (é isso que decide se dá pra vender ou não).
   const linhasEstoque = produtos.flatMap((p) =>
     (p.variantes?.length ?? 0) > 0
-      ? p.variantes!.map((v) => ({ id: v.id, nome: `${p.nome} — ${v.cor}`, estoque: v.estoque }))
+      ? p.variantes!.map((v) => ({
+          id: v.id,
+          nome: `${p.nome} — ${descricaoVariante(v.cor, v.tamanho)}`,
+          estoque: v.estoque,
+        }))
       : [{ id: p.id, nome: p.nome, estoque: p.estoque }]
   );
   const estoqueBaixo = linhasEstoque.filter((l) => l.estoque <= 3);

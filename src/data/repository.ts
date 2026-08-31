@@ -11,12 +11,13 @@ import { products as localProducts } from "./products";
  */
 
 const PRODUTO_COM_VARIANTES_SELECT =
-  "*, produto_variantes(id, cor, preco, preco_promocional, estoque, imagens, ordem)";
+  "*, produto_variantes(id, cor, tamanho, preco, preco_promocional, estoque, imagens, ordem)";
 
 function mapVariantRow(row: any): ProductVariant {
   return {
     id: row.id,
     cor: row.cor,
+    tamanho: row.tamanho ?? "",
     preco: Number(row.preco),
     precoPromocional:
       row.preco_promocional !== null ? Number(row.preco_promocional) : null,

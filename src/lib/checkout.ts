@@ -1,4 +1,5 @@
 import { supabase, isSupabaseConfigured } from "./supabase";
+import { descricaoVariante } from "./productPricing";
 import type { CartItem, CustomerData, Order } from "../types";
 
 /**
@@ -26,7 +27,9 @@ export async function placeOrder(
       p_itens: itens.map((i) => ({
         produto_id: i.productId,
         variante_id: i.varianteId ?? null,
-        nome: i.cor ? `${i.nome} (${i.cor})` : i.nome,
+        nome: descricaoVariante(i.cor, i.tamanho)
+          ? `${i.nome} (${descricaoVariante(i.cor, i.tamanho)})`
+          : i.nome,
         preco_unitario: i.precoUnitario,
         quantidade: i.quantidade,
       })),

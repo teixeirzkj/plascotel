@@ -49,3 +49,8 @@ export function imagensDaVariante(product: Product, variante: ProductVariant | n
   if (variante && variante.imagens.length > 0) return variante.imagens;
   return product.imagens;
 }
+
+/** "Branco, P" / "Branco" / "P" / "" — para exibir a variação escolhida. */
+export function descricaoVariante(cor?: string | null, tamanho?: string | null): string {
+  return [cor, tamanho].filter(Boolean).join(", ");
+}

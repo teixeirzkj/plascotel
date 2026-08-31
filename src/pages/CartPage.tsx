@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { FiMinus, FiPlus, FiTrash2 } from "react-icons/fi";
 import { useCartStore } from "../store/cart";
 import { formatCurrency } from "../lib/format";
+import { descricaoVariante } from "../lib/productPricing";
 
 const FRETE_GRATIS_ACIMA_DE = 1500;
 const FRETE_PADRAO = 89.9;
@@ -17,13 +18,13 @@ export default function CartPage() {
       <section className="mx-auto flex max-w-3xl flex-col items-center px-6 py-24 text-center">
         <h1 className="font-display text-3xl">Seu carrinho está vazio</h1>
         <p className="mt-2 text-charcoal/60">
-          Que tal dar uma olhada nos nossos móveis?
+          Que tal dar uma olhada nos nossos produtos?
         </p>
         <Link
           to="/moveis"
           className="mt-6 rounded-full bg-charcoal px-6 py-3 font-semibold text-white"
         >
-          Ver móveis
+          Ver produtos
         </Link>
       </section>
     );
@@ -50,9 +51,9 @@ export default function CartPage() {
                 <div className="flex items-start justify-between gap-2">
                   <span className="text-sm font-medium leading-snug">
                     {item.nome}
-                    {item.cor && (
+                    {descricaoVariante(item.cor, item.tamanho) && (
                       <span className="block text-xs font-normal text-charcoal/50">
-                        Cor: {item.cor}
+                        {descricaoVariante(item.cor, item.tamanho)}
                       </span>
                     )}
                   </span>

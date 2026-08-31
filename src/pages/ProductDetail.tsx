@@ -21,13 +21,45 @@ export default function ProductDetail() {
 
   const [activeImage, setActiveImage] = useState(0);
   const [cor, setCor] = useState(product?.cores[0] ?? "");
-  const [varianteId, setVarianteId] = useState<string | null>(product?.variantes?.[0]?.id ?? null);
+  const [corSelecionada, setCorSelecionada] = useState(product?.variantes?.[0]?.cor ?? "");
+  const [tamanhoSelecionado, setTamanhoSelecionado] = useState(product?.variantes?.[0]?.tamanho ?? "");
   const [quantidade, setQuantidade] = useState(1);
   const addItem = useCartStore((s) => s.addItem);
 
-  const variante = temVariantes
-    ? product!.variantes!.find((v) => v.id === varianteId) ?? product!.variantes![0]
-    : null;
+  // Cores/tamanhos únicos oferecidos pelo produto (na ordem cadastrada).
+  const coresDisponiveis = temVariantes
+    ? [...new Set(product!.variantes!.map((v) => v.cor).filter(Boolean))]
+    : [];
+  const tamanhosDisponiveis = temVariantes
+    ? [...new Set(product!.variantes!.map((v) => v.tamanho).filter(Boolean))]
+    : [];
+
+  // Acha a variação para uma combinação de cor/tamanho; se a combinação
+  // exata não existir (nem toda cor tem todo tamanho), cai para a primeira
+  // variação que bate com pelo menos um dos dois.
+  function variantePara(corAlvo: string, tamanhoAlvo: string) {
+    const vs = product!.variantes!;
+    return (
+      vs.find((v) => v.cor === corAlvo && v.tamanho === tamanhoAlvo) ??
+      vs.find((v) => v.cor === corAlvo) ??
+      vs.find((v) => v.tamanho === tamanhoAlvo) ??
+      vs[0]
+    );
+  }
+
+  const variante = temVariantes ? variantePara(corSelecionada, tamanhoSelecionado) : null;
+
+  function selecionarCor(novaCor: string) {
+    const v = variantePara(novaCor, tamanhoSelecionado);
+    setCorSelecionada(v.cor);
+    setTamanhoSelecionado(v.tamanho);
+  }
+
+  function selecionarTamanho(novoTamanho: string) {
+    const v = variantePara(corSelecionada, novoTamanho);
+    setCorSelecionada(v.cor);
+    setTamanhoSelecionado(v.tamanho);
+  }
 
   useEffect(() => {
     if (product && searchParams.get("comprar") === "1") {
@@ -40,7 +72,8 @@ export default function ProductDetail() {
   useEffect(() => {
     if (!product) return;
     if (temVariantes) {
-      if (!varianteId) setVarianteId(product.variantes![0].id);
+      setCorSelecionada(product.variantes![0].cor);
+      setTamanhoSelecionado(product.variantes![0].tamanho);
     } else if (!cor) {
       setCor(product.cores[0] ?? "");
     }
@@ -53,7 +86,7 @@ export default function ProductDetail() {
     setActiveImage(0);
     setQuantidade(1);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [varianteId]);
+  }, [variante?.id]);
 
   // Espera o catálogo carregar do banco antes de decidir que o produto não
   // existe (evita redirecionar antes da resposta do Supabase chegar).
@@ -134,26 +167,53 @@ export default function ProductDetail() {
           </p>
 
           {temVariantes ? (
-            <div className="mt-7 sm:mt-8">
-              <h3 className="mb-2.5 text-sm font-semibold">Cor</h3>
-              <div className="flex flex-wrap gap-2">
-                {product.variantes!.map((v) => (
-                  <button
-                    key={v.id}
-                    onClick={() => setVarianteId(v.id)}
-                    disabled={v.estoque === 0}
-                    className={`rounded-full border px-4 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-40 ${
-                      varianteId === v.id
-                        ? "border-charcoal bg-charcoal text-white"
-                        : "border-sand hover:bg-wood-100"
-                    }`}
-                  >
-                    {v.cor}
-                    {v.estoque === 0 && " (esgotado)"}
-                  </button>
-                ))}
-              </div>
-            </div>
+            <>
+              {coresDisponiveis.length > 0 && (
+                <div className="mt-7 sm:mt-8">
+                  <h3 className="mb-2.5 text-sm font-semibold">Cor</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {coresDisponiveis.map((c) => (
+                      <button
+                        key={c}
+                        onClick={() => selecionarCor(c)}
+                        className={`rounded-full border px-4 py-2 text-sm ${
+                          corSelecionada === c
+                            ? "border-charcoal bg-charcoal text-white"
+                            : "border-sand hover:bg-wood-100"
+                        }`}
+                      >
+                        {c}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {tamanhosDisponiveis.length > 0 && (
+                <div className="mt-7 sm:mt-8">
+                  <h3 className="mb-2.5 text-sm font-semibold">Tamanho</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {tamanhosDisponiveis.map((t) => (
+                      <button
+                        key={t}
+                        onClick={() => selecionarTamanho(t)}
+                        className={`rounded-full border px-4 py-2 text-sm ${
+                          tamanhoSelecionado === t
+                            ? "border-charcoal bg-charcoal text-white"
+                            : "border-sand hover:bg-wood-100"
+                        }`}
+                      >
+                        {t}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {variante?.estoque === 0 && (
+                <p className="mt-3 text-sm font-medium text-offer">
+                  Esgotado nessa combinação de cor/tamanho.
+                </p>
+              )}
+            </>
           ) : (
             product.cores.length > 0 && (
               <div className="mt-7 sm:mt-8">

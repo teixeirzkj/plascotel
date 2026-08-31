@@ -14,8 +14,8 @@ interface ProductsPageProps {
 }
 
 export default function ProductsPage({
-  title = "Nossos móveis",
-  subtitle = "Encontre o móvel perfeito para cada ambiente da sua casa.",
+  title = "Nossos produtos",
+  subtitle = "Encontre o produto perfeito para cada ambiente da sua casa.",
   baseFilter,
   hideCategoryFilter,
 }: ProductsPageProps) {
@@ -51,7 +51,7 @@ export default function ProductsPage({
         <div>
           {filtered.length === 0 ? (
             <p className="py-16 text-center text-charcoal/60">
-              Nenhum móvel encontrado com esses filtros.
+              Nenhum produto encontrado com esses filtros.
             </p>
           ) : (
             <div className="grid grid-cols-2 gap-4 sm:gap-6 md:grid-cols-3 lg:grid-cols-3">

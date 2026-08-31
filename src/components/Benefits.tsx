@@ -5,7 +5,7 @@ const benefits = [
   {
     icon: FiTruck,
     title: "Entrega",
-    text: "Entregamos seus móveis com segurança em todo o Brasil.",
+    text: "Entregamos seus produtos com segurança em todo o Brasil.",
   },
   {
     icon: FiStar,

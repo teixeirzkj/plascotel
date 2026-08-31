@@ -7,7 +7,7 @@ export function WhatsAppFloatButton() {
   return (
     <motion.a
       href={buildWhatsAppLink(
-        `Olá! Vim pelo site da ${STORE_NAME} e gostaria de saber mais sobre os móveis.`
+        `Olá! Vim pelo site da ${STORE_NAME} e gostaria de saber mais sobre os produtos.`
       )}
       target="_blank"
       rel="noopener noreferrer"

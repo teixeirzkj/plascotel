@@ -44,7 +44,7 @@ export const heroSlides: HeroSlide[] = [
     imagem: "/hero/sala-sofisticada.png",
     badge: "Elegância em tons escuros",
     titulo: "Sofisticação em cada detalhe",
-    descricao: "Móveis modernos que trazem personalidade para sua casa.",
+    descricao: "Produtos modernos que trazem personalidade para sua casa.",
     ctaPrimarioLabel: "Ver coleção",
     ctaPrimarioTo: "/moveis",
     ctaSecundarioLabel: "Ver categorias",

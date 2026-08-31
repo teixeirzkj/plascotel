@@ -22,7 +22,7 @@ type FormState = Omit<Product, "id" | "imagens" | "cores" | "variantes"> & {
 type VariantForm = Omit<ProductVariant, "id"> & { id?: string };
 
 function novaVariante(): VariantForm {
-  return { cor: "", preco: 0, precoPromocional: null, estoque: 0, imagens: [] };
+  return { cor: "", tamanho: "", preco: 0, precoPromocional: null, estoque: 0, imagens: [] };
 }
 
 const emptyForm: FormState = {
@@ -180,8 +180,10 @@ export default function AdminProductForm() {
       setError("Adicione pelo menos uma imagem do produto.");
       return;
     }
-    if (variantes.some((v) => !v.cor.trim() || v.preco <= 0)) {
-      setError("Preencha a cor e um preço maior que zero em todas as variações.");
+    if (variantes.some((v) => (!v.cor.trim() && !v.tamanho.trim()) || v.preco <= 0)) {
+      setError(
+        "Preencha a cor e/ou o tamanho, e um preço maior que zero, em todas as variações."
+      );
       return;
     }
     setSaving(true);
@@ -198,6 +200,7 @@ export default function AdminProductForm() {
         produtoId,
         variantes.map((v) => ({
           cor: v.cor,
+          tamanho: v.tamanho,
           preco: v.preco,
           precoPromocional: v.precoPromocional,
           estoque: v.estoque,
@@ -423,12 +426,15 @@ export default function AdminProductForm() {
         <div className="flex flex-col gap-3 rounded-xl border border-sand p-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div>
-              <p className="text-sm font-semibold">Variações por cor (preço e estoque diferentes)</p>
+              <p className="text-sm font-semibold">
+                Variações por cor e/ou tamanho (preço e estoque diferentes)
+              </p>
               <p className="text-xs text-charcoal/50">
-                Use isso só quando cores do produto custam ou têm estoque
-                diferente. Cadastrando pelo menos uma cor aqui, o site usa
-                preço/estoque/fotos de cada variação em vez dos campos gerais
-                acima.
+                Use isso só quando cores/tamanhos do produto custam ou têm
+                estoque diferente. Preencha cor, tamanho, ou os dois — nem
+                todo produto precisa dos dois juntos. Cadastrando pelo menos
+                uma variação aqui, o site usa preço/estoque/fotos de cada uma
+                em vez dos campos gerais acima.
               </p>
             </div>
             <button
@@ -436,7 +442,7 @@ export default function AdminProductForm() {
               onClick={() => setVariantes((prev) => [...prev, novaVariante()])}
               className="flex flex-none items-center gap-2 rounded-full border border-sand px-4 py-2 text-sm font-semibold hover:bg-wood-100"
             >
-              <FiPlus size={15} /> Adicionar cor
+              <FiPlus size={15} /> Adicionar variação
             </button>
           </div>
 
@@ -445,11 +451,18 @@ export default function AdminProductForm() {
               {variantes.map((v, i) => (
                 <div key={v.id ?? i} className="flex flex-col gap-3 rounded-xl bg-wood-50 p-4">
                   <div className="flex items-start justify-between gap-3">
-                    <div className="grid flex-1 grid-cols-2 gap-3 sm:grid-cols-4">
-                      <Field label="Cor">
+                    <div className="grid flex-1 grid-cols-2 gap-3 sm:grid-cols-5">
+                      <Field label="Cor (opcional)">
                         <input
                           value={v.cor}
                           onChange={(e) => updateVariante(i, { cor: e.target.value })}
+                          className="input"
+                        />
+                      </Field>
+                      <Field label="Tamanho (opcional)">
+                        <input
+                          value={v.tamanho}
+                          onChange={(e) => updateVariante(i, { tamanho: e.target.value })}
                           className="input"
                         />
                       </Field>
@@ -490,7 +503,7 @@ export default function AdminProductForm() {
                     <button
                       type="button"
                       onClick={() => removerVariante(i)}
-                      aria-label="Remover cor"
+                      aria-label="Remover variação"
                       className="mt-6 flex-none rounded-full p-2 text-offer hover:bg-offer/10"
                     >
                       <FiX size={16} />

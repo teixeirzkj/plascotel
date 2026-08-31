@@ -18,7 +18,7 @@ export default function ContactPage() {
         Fale com a {STORE_NAME}
       </h1>
       <p className="mt-4 text-charcoal/70">
-        Estamos prontos para te ajudar a encontrar o móvel ideal. Fale
+        Estamos prontos para te ajudar a encontrar o produto ideal. Fale
         conosco pelo WhatsApp ou confira nossos outros canais.
       </p>
 

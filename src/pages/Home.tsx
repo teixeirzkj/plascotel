@@ -38,7 +38,7 @@ export default function Home() {
             Categorias
           </span>
           <h2 className="mt-2 font-display text-2xl sm:text-3xl md:text-4xl">
-            Encontre o móvel ideal para seu espaço
+            Encontre o produto ideal para sua casa
           </h2>
         </motion.div>
         <CategoriesToggle />
@@ -56,7 +56,7 @@ export default function Home() {
               Coleção
             </span>
             <h2 className="mt-2 font-display text-2xl sm:text-3xl md:text-4xl">
-              Nossos móveis
+              Nossos produtos
             </h2>
           </div>
           <Link

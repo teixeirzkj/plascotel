@@ -81,7 +81,7 @@ export default function App() {
               <PolicyPage
                 title="Política de entrega"
                 paragraphs={[
-                  "O prazo de entrega varia de acordo com o produto e a região, e é informado na página de cada móvel.",
+                  "O prazo de entrega varia de acordo com o produto e a região, e é informado na página de cada produto.",
                   "Após a confirmação do pagamento, você receberá atualizações sobre o status da entrega pelo WhatsApp.",
                 ]}
               />

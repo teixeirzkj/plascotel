@@ -56,7 +56,8 @@ export const useCartStore = create<CartState>()(
               {
                 productId: product.id,
                 varianteId,
-                cor: variante?.cor ?? null,
+                cor: variante?.cor || null,
+                tamanho: variante?.tamanho || null,
                 nome: product.nome,
                 imagem: imagensDaVariante(product, variante)[0] ?? "",
                 precoUnitario: preco,

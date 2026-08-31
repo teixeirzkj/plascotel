@@ -1,4 +1,5 @@
 import { supabase } from "../lib/supabase";
+import { descricaoVariante } from "../lib/productPricing";
 import type { Category, Product, ProductVariant } from "../types";
 
 function requireSupabase() {
@@ -169,6 +170,7 @@ export interface ManualSaleItem {
   varianteId?: string | null;
   nome: string;
   cor?: string | null;
+  tamanho?: string | null;
   precoUnitario: number;
   quantidade: number;
 }
@@ -190,7 +192,9 @@ export async function createManualSale(
     p_itens: itens.map((i) => ({
       produto_id: i.produtoId,
       variante_id: i.varianteId ?? null,
-      nome: i.cor ? `${i.nome} (${i.cor})` : i.nome,
+      nome: descricaoVariante(i.cor, i.tamanho)
+        ? `${i.nome} (${descricaoVariante(i.cor, i.tamanho)})`
+        : i.nome,
       preco_unitario: i.precoUnitario,
       quantidade: i.quantidade,
     })),

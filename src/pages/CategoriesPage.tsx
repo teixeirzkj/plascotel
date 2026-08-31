@@ -10,7 +10,7 @@ export default function CategoriesPage() {
       <div className="mb-8">
         <h1 className="font-display text-2xl sm:text-3xl md:text-4xl">Categorias</h1>
         <p className="mt-2 text-charcoal/60">
-          Selecione uma categoria para ver os móveis disponíveis.
+          Selecione uma categoria para ver os produtos disponíveis.
         </p>
       </div>
       <div className="flex flex-wrap gap-3">

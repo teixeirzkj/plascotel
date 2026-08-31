@@ -55,7 +55,7 @@ export function SearchOverlay({ open, onClose }: SearchOverlayProps) {
                 autoFocus
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Digite o nome do móvel..."
+                placeholder="Digite o nome do produto..."
                 className="w-full bg-transparent text-lg outline-none placeholder:text-charcoal/40"
               />
               <button onClick={onClose} aria-label="Fechar busca">
@@ -65,7 +65,7 @@ export function SearchOverlay({ open, onClose }: SearchOverlayProps) {
             <div className="mt-3 max-h-96 overflow-y-auto">
               {query.trim() && results.length === 0 && (
                 <p className="py-6 text-center text-sm text-charcoal/60">
-                  Nenhum móvel encontrado para "{query}".
+                  Nenhum produto encontrado para "{query}".
                 </p>
               )}
               {results.map((p) => (

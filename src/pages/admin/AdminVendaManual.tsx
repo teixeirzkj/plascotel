@@ -4,6 +4,7 @@ import { FiPlus, FiTrash2 } from "react-icons/fi";
 import { fetchProducts } from "../../data/repository";
 import { createManualSale, type ManualSaleItem } from "../../data/adminRepository";
 import { formatCurrency } from "../../lib/format";
+import { descricaoVariante } from "../../lib/productPricing";
 import type { Product } from "../../types";
 
 function chaveItem(i: ManualSaleItem) {
@@ -71,7 +72,8 @@ export default function AdminVendaManual() {
       produtoId: produtoAtual.id,
       varianteId: variante?.id ?? null,
       nome: produtoAtual.nome,
-      cor: variante?.cor ?? null,
+      cor: variante?.cor || null,
+      tamanho: variante?.tamanho || null,
       precoUnitario,
       quantidade,
     };
@@ -164,7 +166,7 @@ export default function AdminVendaManual() {
 
           {temVariantes && (
             <label className="flex flex-col gap-1.5 text-sm">
-              <span className="font-medium text-charcoal/80">Cor</span>
+              <span className="font-medium text-charcoal/80">Variação</span>
               <select
                 value={varianteSelecionada}
                 onChange={(e) => setVarianteSelecionada(e.target.value)}
@@ -172,7 +174,7 @@ export default function AdminVendaManual() {
               >
                 {produtoAtual!.variantes!.map((v) => (
                   <option key={v.id} value={v.id}>
-                    {v.cor} — estoque: {v.estoque}
+                    {descricaoVariante(v.cor, v.tamanho)} — estoque: {v.estoque}
                   </option>
                 ))}
               </select>
@@ -215,7 +217,8 @@ export default function AdminVendaManual() {
                 <li key={chaveItem(i)} className="flex items-center justify-between gap-3 text-sm">
                   <span className="min-w-0 truncate">
                     {i.nome}
-                    {i.cor && ` (${i.cor})`} × {i.quantidade}
+                    {descricaoVariante(i.cor, i.tamanho) && ` (${descricaoVariante(i.cor, i.tamanho)})`} ×{" "}
+                    {i.quantidade}
                   </span>
                   <div className="flex flex-none items-center gap-3">
                     <span>{formatCurrency(i.precoUnitario * i.quantidade)}</span>

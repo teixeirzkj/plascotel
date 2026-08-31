@@ -52,21 +52,47 @@ alter table produtos add column if not exists altura numeric(10, 2);
 alter table produtos add column if not exists largura numeric(10, 2);
 alter table produtos add column if not exists comprimento numeric(10, 2);
 
--- Variações de cor com preço, estoque e fotos próprios (opcional). Um
--- produto sem linhas aqui continua usando preço/estoque/fotos da tabela
--- "produtos" normalmente — variações só entram em jogo quando cadastradas.
+-- Variações (cor e/ou tamanho) com preço, estoque e fotos próprios
+-- (opcional). Um produto sem linhas aqui continua usando preço/estoque/
+-- fotos da tabela "produtos" normalmente — variações só entram em jogo
+-- quando cadastradas. Cada linha pode ter só cor, só tamanho, ou os dois
+-- juntos (ex: "Branco" + "P"), dependendo do que o produto precisar.
 create table if not exists produto_variantes (
   id uuid primary key default gen_random_uuid(),
   produto_id uuid not null references produtos(id) on delete cascade,
-  cor text not null,
+  cor text not null default '',
+  tamanho text not null default '',
   preco numeric(10, 2) not null,
   preco_promocional numeric(10, 2),
   estoque integer not null default 0 check (estoque >= 0),
   imagens text[] not null default '{}',
   ordem integer not null default 0,
   criado_em timestamptz not null default now(),
-  unique (produto_id, cor)
+  check (cor <> '' or tamanho <> ''),
+  unique (produto_id, cor, tamanho)
 );
+
+-- Garante a coluna e as regras em bancos criados antes desta versão do
+-- schema (quando a tabela já existia só com "cor", sem "tamanho").
+alter table produto_variantes add column if not exists tamanho text not null default '';
+alter table produto_variantes alter column cor set default '';
+alter table produto_variantes drop constraint if exists produto_variantes_produto_id_cor_key;
+alter table produto_variantes drop constraint if exists produto_variantes_cor_check;
+do $$
+begin
+  if not exists (
+    select 1 from pg_constraint where conname = 'produto_variantes_produto_id_cor_tamanho_key'
+  ) then
+    alter table produto_variantes
+      add constraint produto_variantes_produto_id_cor_tamanho_key unique (produto_id, cor, tamanho);
+  end if;
+  if not exists (
+    select 1 from pg_constraint where conname = 'produto_variantes_cor_tamanho_check'
+  ) then
+    alter table produto_variantes
+      add constraint produto_variantes_cor_tamanho_check check (cor <> '' or tamanho <> '');
+  end if;
+end $$;
 
 create table if not exists pedidos (
   id uuid primary key default gen_random_uuid(),
@@ -241,10 +267,11 @@ begin
 
   delete from produto_variantes where produto_id = p_produto_id;
 
-  insert into produto_variantes (produto_id, cor, preco, preco_promocional, estoque, imagens, ordem)
+  insert into produto_variantes (produto_id, cor, tamanho, preco, preco_promocional, estoque, imagens, ordem)
   select
     p_produto_id,
-    v->>'cor',
+    coalesce(v->>'cor', ''),
+    coalesce(v->>'tamanho', ''),
     (v->>'preco')::numeric,
     nullif(v->>'precoPromocional', '')::numeric,
     (v->>'estoque')::integer,

@@ -21,7 +21,7 @@ export function WhyChooseUs() {
       >
         <img
           src="https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?q=80&w=1200&auto=format&fit=crop"
-          alt="Ambiente decorado com móveis Plascotel"
+          alt="Ambiente decorado com produtos Plascotel"
           className="h-full w-full object-cover"
           loading="lazy"
         />
@@ -36,12 +36,13 @@ export function WhyChooseUs() {
           Por que escolher a {STORE_NAME}?
         </span>
         <h2 className="mt-3 font-display text-3xl leading-tight md:text-4xl">
-          Móveis que fazem parte da sua história
+          Produtos que fazem parte da sua história
         </h2>
         <p className="mt-4 text-charcoal/70">
-          Na {STORE_NAME}, acreditamos que móveis não são apenas objetos. Eles
-          fazem parte dos momentos, histórias e experiências da sua casa —
-          por isso cuidamos de cada detalhe, do design ao pós-venda.
+          Na {STORE_NAME}, acreditamos que os produtos da sua casa não são
+          apenas objetos. Eles fazem parte dos momentos, histórias e
+          experiências do seu dia a dia — por isso cuidamos de cada detalhe,
+          do design ao pós-venda.
         </p>
         <ul className="mt-6 flex flex-col gap-3">
           {pontos.map((p) => (

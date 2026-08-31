@@ -18,7 +18,7 @@ export function Footer() {
         <div className="col-span-2 sm:col-span-1">
           <Logo dark />
           <p className="mt-3 text-xs text-white/60 md:text-sm">
-            Móveis modernos que unem design, conforto e qualidade para
+            Produtos que unem design, conforto e qualidade para
             transformar a sua casa.
           </p>
         </div>

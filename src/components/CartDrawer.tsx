@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { FiX, FiPlus, FiMinus, FiTrash2 } from "react-icons/fi";
 import { useCartStore } from "../store/cart";
 import { formatCurrency } from "../lib/format";
+import { descricaoVariante } from "../lib/productPricing";
 
 export function CartDrawer() {
   const { isOpen, close, items, increment, decrement, removeItem, subtotal } =
@@ -46,7 +47,7 @@ export function CartDrawer() {
                     onClick={close}
                     className="mt-4 rounded-full bg-charcoal px-5 py-2.5 text-sm font-semibold text-white"
                   >
-                    Ver móveis
+                    Ver produtos
                   </Link>
                 </div>
               ) : (
@@ -62,9 +63,9 @@ export function CartDrawer() {
                         <div className="flex items-start justify-between gap-2">
                           <p className="font-medium leading-snug">
                             {item.nome}
-                            {item.cor && (
+                            {descricaoVariante(item.cor, item.tamanho) && (
                               <span className="block text-xs font-normal text-charcoal/50">
-                                Cor: {item.cor}
+                                {descricaoVariante(item.cor, item.tamanho)}
                               </span>
                             )}
                           </p>

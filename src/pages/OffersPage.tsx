@@ -4,7 +4,7 @@ export default function OffersPage() {
   return (
     <ProductsPage
       title="Ofertas especiais"
-      subtitle="Aproveite os melhores preços em móveis selecionados."
+      subtitle="Aproveite os melhores preços em produtos selecionados."
       baseFilter={(produtos) => produtos.filter((p) => p.oferta)}
     />
   );
