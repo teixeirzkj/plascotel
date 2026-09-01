@@ -10,7 +10,7 @@ const benefits = [
   {
     icon: FiStar,
     title: "Qualidade",
-    text: "Produtos selecionados a dedo para a sua casa.",
+    text: "Móveis, cama, mesa, banho e decoração selecionados a dedo.",
   },
   {
     icon: FiCreditCard,

@@ -10,13 +10,14 @@ export default function AboutPage() {
           Sobre nós
         </span>
         <h1 className="mt-2 font-display text-2xl sm:text-3xl md:text-4xl">
-          A {STORE_NAME} é feita de produtos e histórias
+          A {STORE_NAME} é feita de casa e histórias
         </h1>
         <p className="mt-4 text-charcoal/70">
-          Nascemos com o propósito de levar produtos de qualidade, design
-          moderno e atendimento próximo para dentro da casa de cada cliente.
+          Nascemos com o propósito de levar tudo o que uma casa precisa —
+          móveis, cama, mesa e banho, pratos, decoração e muito mais — com
+          qualidade, design moderno e atendimento próximo para cada cliente.
           Selecionamos cada peça pensando em conforto, durabilidade e
-          estilo — para que sua casa reflita quem você é.
+          estilo, para que sua casa reflita quem você é.
         </p>
       </div>
       <WhyChooseUs />

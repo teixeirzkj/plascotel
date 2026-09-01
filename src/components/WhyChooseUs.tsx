@@ -3,8 +3,8 @@ import { FiCheck } from "react-icons/fi";
 import { STORE_NAME } from "../config/store";
 
 const pontos = [
+  "Móveis, cama, mesa e banho, decoração e muito mais em um só lugar",
   "Qualidade em cada detalhe, do material ao acabamento",
-  "Variedade de estilos para todos os ambientes",
   "Atendimento próximo, direto pelo WhatsApp",
   "Compra segura, do carrinho ao pagamento",
 ];
@@ -36,13 +36,12 @@ export function WhyChooseUs() {
           Por que escolher a {STORE_NAME}?
         </span>
         <h2 className="mt-3 font-display text-3xl leading-tight md:text-4xl">
-          Produtos que fazem parte da sua história
+          Tudo que sua casa precisa, em um só lugar
         </h2>
         <p className="mt-4 text-charcoal/70">
-          Na {STORE_NAME}, acreditamos que os produtos da sua casa não são
-          apenas objetos. Eles fazem parte dos momentos, histórias e
-          experiências do seu dia a dia — por isso cuidamos de cada detalhe,
-          do design ao pós-venda.
+          Na {STORE_NAME}, do móvel da sala à toalha do banheiro, dos pratos
+          da mesa às colchas do quarto — cuidamos de cada detalhe pra sua
+          casa ficar completa, com qualidade e o seu estilo.
         </p>
         <ul className="mt-6 flex flex-col gap-3">
           {pontos.map((p) => (
