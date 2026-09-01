@@ -10,7 +10,22 @@
     <meta property="og:type" content="website" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Playfair+Display:wght@500;600;700&display=swap" rel="stylesheet">
+    <!-- Carrega a fonte sem bloquear a primeira renderização (o texto some do jeito padrão do sistema e troca pra fonte definitiva assim que ela chega). -->
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Playfair+Display:wght@500;600;700&display=swap"
+      media="print"
+      onload="this.media='all'"
+    />
+    <noscript>
+      <link
+        rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Playfair+Display:wght@500;600;700&display=swap"
+      />
+    </noscript>
+    <!-- Primeira imagem do carrossel da Home: é o elemento de LCP, então
+         carrega antes de qualquer JS rodar em vez de esperar o React montar. -->
+    <link rel="preload" as="image" href="/hero/sala-madeira.webp" fetchpriority="high" />
     <title>Plascotel | Produtos modernos para sua casa</title>
   </head>
   <body>

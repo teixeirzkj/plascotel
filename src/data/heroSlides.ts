@@ -19,7 +19,7 @@ export interface HeroSlide {
 export const heroSlides: HeroSlide[] = [
   {
     id: "sala-madeira",
-    imagem: "/hero/sala-madeira.png",
+    imagem: "/hero/sala-madeira.webp",
     badge: "Conforto que transforma seus ambientes",
     titulo: "Salas com personalidade",
     descricao: "Madeira, textura e aconchego para o dia a dia da sua família.",
@@ -30,7 +30,7 @@ export const heroSlides: HeroSlide[] = [
   },
   {
     id: "quarto-planejado",
-    imagem: "/hero/quarto-planejado.png",
+    imagem: "/hero/quarto-planejado.webp",
     badge: "Descanso com estilo",
     titulo: "Quartos feitos para relaxar",
     descricao: "Design moderno e funcional para o seu momento de descanso.",
@@ -41,7 +41,7 @@ export const heroSlides: HeroSlide[] = [
   },
   {
     id: "sala-sofisticada",
-    imagem: "/hero/sala-sofisticada.png",
+    imagem: "/hero/sala-sofisticada.webp",
     badge: "Elegância em tons escuros",
     titulo: "Sofisticação em cada detalhe",
     descricao: "Produtos modernos que trazem personalidade para sua casa.",
@@ -52,7 +52,7 @@ export const heroSlides: HeroSlide[] = [
   },
   {
     id: "sala-integrada",
-    imagem: "/hero/sala-integrada.png",
+    imagem: "/hero/sala-integrada.webp",
     badge: "Ambientes que se conectam",
     titulo: "Espaços feitos para viver",
     descricao: "Praticidade e conforto do sofá à mesa de jantar.",

@@ -1,6 +1,6 @@
+import { lazy, Suspense } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Layout } from "./components/Layout";
-import { AdminLayout } from "./components/AdminLayout";
 import { ProtectedAdminRoute } from "./components/ProtectedAdminRoute";
 import Home from "./pages/Home";
 import ProductsPage from "./pages/ProductsPage";
@@ -15,13 +15,24 @@ import AboutPage from "./pages/AboutPage";
 import ContactPage from "./pages/ContactPage";
 import PolicyPage from "./pages/PolicyPage";
 import NotFound from "./pages/NotFound";
-import AdminLogin from "./pages/admin/AdminLogin";
-import AdminDashboard from "./pages/admin/AdminDashboard";
-import AdminProducts from "./pages/admin/AdminProducts";
-import AdminProductForm from "./pages/admin/AdminProductForm";
-import AdminCategories from "./pages/admin/AdminCategories";
-import AdminOrders from "./pages/admin/AdminOrders";
-import AdminVendaManual from "./pages/admin/AdminVendaManual";
+
+// O painel admin (e libs que só ele usa, como o gráfico de vendas) fica
+// num pacote separado, baixado só por quem realmente acessa o /admin —
+// clientes da loja não precisam desse código.
+const AdminLayout = lazy(() =>
+  import("./components/AdminLayout").then((m) => ({ default: m.AdminLayout }))
+);
+const AdminLogin = lazy(() => import("./pages/admin/AdminLogin"));
+const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
+const AdminProducts = lazy(() => import("./pages/admin/AdminProducts"));
+const AdminProductForm = lazy(() => import("./pages/admin/AdminProductForm"));
+const AdminCategories = lazy(() => import("./pages/admin/AdminCategories"));
+const AdminOrders = lazy(() => import("./pages/admin/AdminOrders"));
+const AdminVendaManual = lazy(() => import("./pages/admin/AdminVendaManual"));
+
+function AdminFallback() {
+  return <p className="p-10 text-center text-charcoal/50">Carregando...</p>;
+}
 
 export default function App() {
   return (
@@ -90,22 +101,80 @@ export default function App() {
           <Route path="*" element={<NotFound />} />
         </Route>
 
-        <Route path="/admin/login" element={<AdminLogin />} />
+        <Route
+          path="/admin/login"
+          element={
+            <Suspense fallback={<AdminFallback />}>
+              <AdminLogin />
+            </Suspense>
+          }
+        />
         <Route
           path="/admin"
           element={
             <ProtectedAdminRoute>
-              <AdminLayout />
+              <Suspense fallback={<AdminFallback />}>
+                <AdminLayout />
+              </Suspense>
             </ProtectedAdminRoute>
           }
         >
-          <Route index element={<AdminDashboard />} />
-          <Route path="produtos" element={<AdminProducts />} />
-          <Route path="produtos/novo" element={<AdminProductForm />} />
-          <Route path="produtos/:id" element={<AdminProductForm />} />
-          <Route path="categorias" element={<AdminCategories />} />
-          <Route path="pedidos" element={<AdminOrders />} />
-          <Route path="venda-manual" element={<AdminVendaManual />} />
+          <Route
+            index
+            element={
+              <Suspense fallback={<AdminFallback />}>
+                <AdminDashboard />
+              </Suspense>
+            }
+          />
+          <Route
+            path="produtos"
+            element={
+              <Suspense fallback={<AdminFallback />}>
+                <AdminProducts />
+              </Suspense>
+            }
+          />
+          <Route
+            path="produtos/novo"
+            element={
+              <Suspense fallback={<AdminFallback />}>
+                <AdminProductForm />
+              </Suspense>
+            }
+          />
+          <Route
+            path="produtos/:id"
+            element={
+              <Suspense fallback={<AdminFallback />}>
+                <AdminProductForm />
+              </Suspense>
+            }
+          />
+          <Route
+            path="categorias"
+            element={
+              <Suspense fallback={<AdminFallback />}>
+                <AdminCategories />
+              </Suspense>
+            }
+          />
+          <Route
+            path="pedidos"
+            element={
+              <Suspense fallback={<AdminFallback />}>
+                <AdminOrders />
+              </Suspense>
+            }
+          />
+          <Route
+            path="venda-manual"
+            element={
+              <Suspense fallback={<AdminFallback />}>
+                <AdminVendaManual />
+              </Suspense>
+            }
+          />
         </Route>
       </Routes>
     </BrowserRouter>

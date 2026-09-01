@@ -54,6 +54,10 @@ export function HeroCarousel() {
           <motion.img
             src={slide.imagem}
             alt={slide.titulo}
+            // A primeira imagem é o elemento de LCP da Home — carrega com
+            // prioridade alta; as próximas do carrossel podem esperar.
+            fetchPriority={index === 0 ? "high" : "auto"}
+            loading={index === 0 ? "eager" : "lazy"}
             initial={{ scale: 1.1 }}
             animate={{ scale: 1 }}
             transition={{ duration: AUTOPLAY_MS / 1000, ease: "linear" }}
