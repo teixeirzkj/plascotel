@@ -66,15 +66,25 @@ create table if not exists produto_variantes (
   preco_promocional numeric(10, 2),
   estoque integer not null default 0 check (estoque >= 0),
   imagens text[] not null default '{}',
+  -- Peso/dimensões da embalagem dessa variação específica (opcional). Se
+  -- vazio, o cálculo de frete usa o peso/dimensões gerais do produto.
+  peso numeric(10, 3),
+  altura numeric(10, 2),
+  largura numeric(10, 2),
+  comprimento numeric(10, 2),
   ordem integer not null default 0,
   criado_em timestamptz not null default now(),
   check (cor <> '' or tamanho <> ''),
   unique (produto_id, cor, tamanho)
 );
 
--- Garante a coluna e as regras em bancos criados antes desta versão do
--- schema (quando a tabela já existia só com "cor", sem "tamanho").
+-- Garante as colunas e as regras em bancos criados antes desta versão do
+-- schema (quando a tabela já existia só com "cor", sem "tamanho"/peso).
 alter table produto_variantes add column if not exists tamanho text not null default '';
+alter table produto_variantes add column if not exists peso numeric(10, 3);
+alter table produto_variantes add column if not exists altura numeric(10, 2);
+alter table produto_variantes add column if not exists largura numeric(10, 2);
+alter table produto_variantes add column if not exists comprimento numeric(10, 2);
 alter table produto_variantes alter column cor set default '';
 alter table produto_variantes drop constraint if exists produto_variantes_produto_id_cor_key;
 alter table produto_variantes drop constraint if exists produto_variantes_cor_check;
@@ -267,7 +277,10 @@ begin
 
   delete from produto_variantes where produto_id = p_produto_id;
 
-  insert into produto_variantes (produto_id, cor, tamanho, preco, preco_promocional, estoque, imagens, ordem)
+  insert into produto_variantes (
+    produto_id, cor, tamanho, preco, preco_promocional, estoque, imagens,
+    peso, altura, largura, comprimento, ordem
+  )
   select
     p_produto_id,
     coalesce(v->>'cor', ''),
@@ -279,6 +292,10 @@ begin
       (select array_agg(x) from jsonb_array_elements_text(v->'imagens') x),
       '{}'
     ),
+    nullif(v->>'peso', '')::numeric,
+    nullif(v->>'altura', '')::numeric,
+    nullif(v->>'largura', '')::numeric,
+    nullif(v->>'comprimento', '')::numeric,
     (ord - 1)::integer
   from jsonb_array_elements(coalesce(p_variantes, '[]'::jsonb)) with ordinality as t(v, ord);
 end;

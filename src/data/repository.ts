@@ -11,7 +11,11 @@ import { products as localProducts } from "./products";
  */
 
 const PRODUTO_COM_VARIANTES_SELECT =
-  "*, produto_variantes(id, cor, tamanho, preco, preco_promocional, estoque, imagens, ordem)";
+  "*, produto_variantes(id, cor, tamanho, preco, preco_promocional, estoque, imagens, peso, altura, largura, comprimento, ordem)";
+
+function numOrUndef(v: unknown): number | undefined {
+  return v !== null && v !== undefined ? Number(v) : undefined;
+}
 
 function mapVariantRow(row: any): ProductVariant {
   return {
@@ -23,6 +27,10 @@ function mapVariantRow(row: any): ProductVariant {
       row.preco_promocional !== null ? Number(row.preco_promocional) : null,
     estoque: row.estoque ?? 0,
     imagens: row.imagens ?? [],
+    peso: numOrUndef(row.peso),
+    altura: numOrUndef(row.altura),
+    largura: numOrUndef(row.largura),
+    comprimento: numOrUndef(row.comprimento),
   };
 }
 
@@ -47,11 +55,10 @@ function mapProductRow(row: any): Product {
     novo: row.novo ?? false,
     maisVendido: row.mais_vendido ?? false,
     prazoEntrega: row.prazo_entrega ?? "",
-    peso: row.peso !== null && row.peso !== undefined ? Number(row.peso) : undefined,
-    altura: row.altura !== null && row.altura !== undefined ? Number(row.altura) : undefined,
-    largura: row.largura !== null && row.largura !== undefined ? Number(row.largura) : undefined,
-    comprimento:
-      row.comprimento !== null && row.comprimento !== undefined ? Number(row.comprimento) : undefined,
+    peso: numOrUndef(row.peso),
+    altura: numOrUndef(row.altura),
+    largura: numOrUndef(row.largura),
+    comprimento: numOrUndef(row.comprimento),
     variantes: ((row.produto_variantes ?? []) as any[])
       .slice()
       .sort((a, b) => (a.ordem ?? 0) - (b.ordem ?? 0))

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { FiPlus, FiUpload, FiX } from "react-icons/fi";
+import { FiPlus, FiUpload, FiX, FiChevronDown, FiChevronRight } from "react-icons/fi";
 import { fetchCategories, fetchProducts } from "../../data/repository";
 import {
   adminCreateCategory,
@@ -11,6 +11,8 @@ import {
 import { uploadImage } from "../../lib/storage";
 import { ImageUploadField } from "../../components/admin/ImageUploadField";
 import { VariantImagesField } from "../../components/admin/VariantImagesField";
+import { descricaoVariante } from "../../lib/productPricing";
+import { formatCurrency } from "../../lib/format";
 import type { Category, Product, ProductVariant } from "../../types";
 import { useCatalogStore } from "../../store/catalog";
 
@@ -19,10 +21,19 @@ type FormState = Omit<Product, "id" | "imagens" | "cores" | "variantes"> & {
   coresTexto: string;
 };
 
-type VariantForm = Omit<ProductVariant, "id"> & { id?: string };
+// "colapsado" é só um estado visual do formulário — nunca é salvo no banco.
+type VariantForm = Omit<ProductVariant, "id"> & { id?: string; colapsado?: boolean };
 
 function novaVariante(): VariantForm {
-  return { cor: "", tamanho: "", preco: 0, precoPromocional: null, estoque: 0, imagens: [] };
+  return {
+    cor: "",
+    tamanho: "",
+    preco: 0,
+    precoPromocional: null,
+    estoque: 0,
+    imagens: [],
+    colapsado: false,
+  };
 }
 
 const emptyForm: FormState = {
@@ -121,7 +132,9 @@ export default function AdminProductForm() {
           imagensTexto: p.imagens.join("\n"),
           coresTexto: p.cores.join(", "),
         });
-        setVariantes(p.variantes ?? []);
+        // Já vêm colapsadas: são variações já cadastradas, não precisam
+        // ficar ocupando a tela inteira só de abrir a edição do produto.
+        setVariantes((p.variantes ?? []).map((v) => ({ ...v, colapsado: true })));
       }
       setLoading(false);
     });
@@ -205,6 +218,10 @@ export default function AdminProductForm() {
           precoPromocional: v.precoPromocional,
           estoque: v.estoque,
           imagens: v.imagens,
+          peso: v.peso,
+          altura: v.altura,
+          largura: v.largura,
+          comprimento: v.comprimento,
         }))
       );
       await useCatalogStore.getState().refresh();
@@ -447,74 +464,161 @@ export default function AdminProductForm() {
           </div>
 
           {variantes.length > 0 && (
-            <div className="flex flex-col gap-4">
-              {variantes.map((v, i) => (
-                <div key={v.id ?? i} className="flex flex-col gap-3 rounded-xl bg-wood-50 p-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="grid flex-1 grid-cols-2 gap-3 sm:grid-cols-5">
-                      <Field label="Cor (opcional)">
-                        <input
-                          value={v.cor}
-                          onChange={(e) => updateVariante(i, { cor: e.target.value })}
-                          className="input"
-                        />
-                      </Field>
-                      <Field label="Tamanho (opcional)">
-                        <input
-                          value={v.tamanho}
-                          onChange={(e) => updateVariante(i, { tamanho: e.target.value })}
-                          className="input"
-                        />
-                      </Field>
-                      <Field label="Preço (R$)">
-                        <input
-                          type="number"
-                          step="0.01"
-                          min={0}
-                          value={v.preco}
-                          onChange={(e) => updateVariante(i, { preco: Number(e.target.value) })}
-                          className="input"
-                        />
-                      </Field>
-                      <Field label="Preço promo. (R$)">
-                        <input
-                          type="number"
-                          step="0.01"
-                          min={0}
-                          value={v.precoPromocional ?? ""}
-                          onChange={(e) =>
-                            updateVariante(i, {
-                              precoPromocional: e.target.value ? Number(e.target.value) : null,
-                            })
-                          }
-                          className="input"
-                        />
-                      </Field>
-                      <Field label="Estoque">
-                        <input
-                          type="number"
-                          min={0}
-                          value={v.estoque}
-                          onChange={(e) => updateVariante(i, { estoque: Number(e.target.value) })}
-                          className="input"
-                        />
-                      </Field>
+            <div className="flex flex-col gap-3">
+              {variantes.map((v, i) => {
+                const resumo = descricaoVariante(v.cor, v.tamanho) || "(sem cor/tamanho ainda)";
+                return (
+                  <div key={v.id ?? i} className="rounded-xl bg-wood-50">
+                    <div className="flex items-center gap-2 p-3">
+                      <button
+                        type="button"
+                        onClick={() => updateVariante(i, { colapsado: !v.colapsado })}
+                        className="flex flex-1 items-center gap-2 text-left text-sm font-medium"
+                      >
+                        {v.colapsado ? <FiChevronRight size={16} /> : <FiChevronDown size={16} />}
+                        <span>{resumo}</span>
+                        {v.colapsado && (
+                          <span className="text-charcoal/50">
+                            · {formatCurrency(v.precoPromocional ?? v.preco)} · {v.estoque} un.
+                          </span>
+                        )}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => removerVariante(i)}
+                        aria-label="Remover variação"
+                        className="flex-none rounded-full p-2 text-offer hover:bg-offer/10"
+                      >
+                        <FiX size={16} />
+                      </button>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => removerVariante(i)}
-                      aria-label="Remover variação"
-                      className="mt-6 flex-none rounded-full p-2 text-offer hover:bg-offer/10"
-                    >
-                      <FiX size={16} />
-                    </button>
+
+                    {!v.colapsado && (
+                      <div className="flex flex-col gap-3 px-4 pb-4">
+                        <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+                          <Field label="Cor (opcional)">
+                            <input
+                              value={v.cor}
+                              onChange={(e) => updateVariante(i, { cor: e.target.value })}
+                              className="input"
+                            />
+                          </Field>
+                          <Field label="Tamanho (opcional)">
+                            <input
+                              value={v.tamanho}
+                              onChange={(e) => updateVariante(i, { tamanho: e.target.value })}
+                              className="input"
+                            />
+                          </Field>
+                          <Field label="Preço (R$)">
+                            <input
+                              type="number"
+                              step="0.01"
+                              min={0}
+                              value={v.preco}
+                              onChange={(e) => updateVariante(i, { preco: Number(e.target.value) })}
+                              className="input"
+                            />
+                          </Field>
+                          <Field label="Preço promo. (R$)">
+                            <input
+                              type="number"
+                              step="0.01"
+                              min={0}
+                              value={v.precoPromocional ?? ""}
+                              onChange={(e) =>
+                                updateVariante(i, {
+                                  precoPromocional: e.target.value ? Number(e.target.value) : null,
+                                })
+                              }
+                              className="input"
+                            />
+                          </Field>
+                          <Field label="Estoque">
+                            <input
+                              type="number"
+                              min={0}
+                              value={v.estoque}
+                              onChange={(e) => updateVariante(i, { estoque: Number(e.target.value) })}
+                              className="input"
+                            />
+                          </Field>
+                        </div>
+
+                        <div>
+                          <p className="mb-2 text-xs font-medium text-charcoal/60">
+                            Peso e dimensões desta variação (opcional — se vazio, usa os do
+                            produto)
+                          </p>
+                          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                            <Field label="Peso (kg)">
+                              <input
+                                type="number"
+                                step="0.01"
+                                min={0}
+                                value={v.peso ?? ""}
+                                onChange={(e) =>
+                                  updateVariante(i, {
+                                    peso: e.target.value ? Number(e.target.value) : undefined,
+                                  })
+                                }
+                                className="input"
+                              />
+                            </Field>
+                            <Field label="Altura (cm)">
+                              <input
+                                type="number"
+                                step="0.1"
+                                min={0}
+                                value={v.altura ?? ""}
+                                onChange={(e) =>
+                                  updateVariante(i, {
+                                    altura: e.target.value ? Number(e.target.value) : undefined,
+                                  })
+                                }
+                                className="input"
+                              />
+                            </Field>
+                            <Field label="Largura (cm)">
+                              <input
+                                type="number"
+                                step="0.1"
+                                min={0}
+                                value={v.largura ?? ""}
+                                onChange={(e) =>
+                                  updateVariante(i, {
+                                    largura: e.target.value ? Number(e.target.value) : undefined,
+                                  })
+                                }
+                                className="input"
+                              />
+                            </Field>
+                            <Field label="Comprimento (cm)">
+                              <input
+                                type="number"
+                                step="0.1"
+                                min={0}
+                                value={v.comprimento ?? ""}
+                                onChange={(e) =>
+                                  updateVariante(i, {
+                                    comprimento: e.target.value ? Number(e.target.value) : undefined,
+                                  })
+                                }
+                                className="input"
+                              />
+                            </Field>
+                          </div>
+                        </div>
+
+                        <VariantImagesField
+                          value={v.imagens}
+                          onChange={(imgs) => updateVariante(i, { imagens: imgs })}
+                        />
+                      </div>
+                    )}
                   </div>
-                  <VariantImagesField
-                    value={v.imagens}
-                    onChange={(imgs) => updateVariante(i, { imagens: imgs })}
-                  />
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>

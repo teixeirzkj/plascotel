@@ -26,12 +26,21 @@ export default function ProductDetail() {
   const [quantidade, setQuantidade] = useState(1);
   const addItem = useCartStore((s) => s.addItem);
 
-  // Cores/tamanhos únicos oferecidos pelo produto (na ordem cadastrada).
+  // Cores únicas oferecidas pelo produto (na ordem cadastrada). Os tamanhos
+  // mostrados são só os que essa cor realmente tem — não faz sentido exibir
+  // um tamanho que não existe pra cor selecionada (nem que fique desativado).
   const coresDisponiveis = temVariantes
     ? [...new Set(product!.variantes!.map((v) => v.cor).filter(Boolean))]
     : [];
   const tamanhosDisponiveis = temVariantes
-    ? [...new Set(product!.variantes!.map((v) => v.tamanho).filter(Boolean))]
+    ? [
+        ...new Set(
+          product!
+            .variantes!.filter((v) => coresDisponiveis.length === 0 || v.cor === corSelecionada)
+            .map((v) => v.tamanho)
+            .filter(Boolean)
+        ),
+      ]
     : [];
 
   // Acha a variação para uma combinação de cor/tamanho; se a combinação

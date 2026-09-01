@@ -20,6 +20,11 @@ export interface ProductVariant {
   precoPromocional: number | null;
   estoque: number;
   imagens: string[];
+  /** Peso/dimensões só dessa variação (opcional). Vazio = usa os do produto. */
+  peso?: number;
+  altura?: number;
+  largura?: number;
+  comprimento?: number;
 }
 
 export interface Product {

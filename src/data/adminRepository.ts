@@ -97,6 +97,10 @@ export async function adminDuplicateProduct(
         precoPromocional: v.precoPromocional,
         estoque: 0,
         imagens: v.imagens,
+        peso: v.peso,
+        altura: v.altura,
+        largura: v.largura,
+        comprimento: v.comprimento,
       }))
     );
   }
