@@ -113,14 +113,14 @@ export default function ProductDetail() {
   const imagensAtuais = imagensDaVariante(product, variante);
 
   return (
-    <section className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-10 md:px-10 md:py-14">
-      <div className="grid grid-cols-1 gap-8 lg:grid-cols-2 lg:gap-10">
+    <section className="mx-auto max-w-7xl px-4 py-5 sm:px-6 sm:py-10 md:px-10 md:py-14">
+      <div className="grid grid-cols-1 gap-4 sm:gap-8 lg:grid-cols-2 lg:gap-10">
         <div>
           <motion.div
             key={activeImage}
             initial={{ opacity: 0.4 }}
             animate={{ opacity: 1 }}
-            className="aspect-square overflow-hidden rounded-2xl bg-wood-50"
+            className="aspect-[5/4] overflow-hidden rounded-2xl bg-wood-50 sm:aspect-square"
           >
             <img
               src={imagensAtuais[activeImage] ?? imagensAtuais[0]}
@@ -129,12 +129,12 @@ export default function ProductDetail() {
             />
           </motion.div>
           {imagensAtuais.length > 1 && (
-            <div className="mt-3 flex gap-3">
+            <div className="mt-2 flex gap-2 sm:mt-3 sm:gap-3">
               {imagensAtuais.map((img, i) => (
                 <button
                   key={img}
                   onClick={() => setActiveImage(i)}
-                  className={`h-16 w-16 overflow-hidden rounded-xl border-2 sm:h-20 sm:w-20 ${
+                  className={`h-12 w-12 overflow-hidden rounded-lg border-2 sm:h-20 sm:w-20 sm:rounded-xl ${
                     i === activeImage ? "border-wood-700" : "border-transparent"
                   }`}
                 >
@@ -171,21 +171,21 @@ export default function ProductDetail() {
             </p>
           </div>
 
-          <p className="mt-6 text-sm leading-relaxed text-charcoal/70 sm:mt-7 sm:text-base">
+          <p className="mt-4 text-sm leading-relaxed text-charcoal/70 sm:mt-6 sm:text-base">
             {product.descricao}
           </p>
 
           {temVariantes ? (
             <>
               {coresDisponiveis.length > 0 && (
-                <div className="mt-7 sm:mt-8">
-                  <h3 className="mb-2.5 text-sm font-semibold">Cor</h3>
-                  <div className="flex flex-wrap gap-2">
+                <div className="mt-4 sm:mt-8">
+                  <h3 className="mb-1.5 text-xs font-semibold sm:mb-2.5 sm:text-sm">Cor</h3>
+                  <div className="flex flex-wrap gap-1.5 sm:gap-2">
                     {coresDisponiveis.map((c) => (
                       <button
                         key={c}
                         onClick={() => selecionarCor(c)}
-                        className={`rounded-full border px-4 py-2 text-sm ${
+                        className={`rounded-full border px-2.5 py-1 text-xs sm:px-4 sm:py-2 sm:text-sm ${
                           corSelecionada === c
                             ? "border-charcoal bg-charcoal text-white"
                             : "border-sand hover:bg-wood-100"
@@ -198,14 +198,14 @@ export default function ProductDetail() {
                 </div>
               )}
               {tamanhosDisponiveis.length > 0 && (
-                <div className="mt-7 sm:mt-8">
-                  <h3 className="mb-2.5 text-sm font-semibold">Tamanho</h3>
-                  <div className="flex flex-wrap gap-2">
+                <div className="mt-4 sm:mt-8">
+                  <h3 className="mb-1.5 text-xs font-semibold sm:mb-2.5 sm:text-sm">Tamanho</h3>
+                  <div className="flex flex-wrap gap-1.5 sm:gap-2">
                     {tamanhosDisponiveis.map((t) => (
                       <button
                         key={t}
                         onClick={() => selecionarTamanho(t)}
-                        className={`rounded-full border px-4 py-2 text-sm ${
+                        className={`rounded-full border px-2.5 py-1 text-xs sm:px-4 sm:py-2 sm:text-sm ${
                           tamanhoSelecionado === t
                             ? "border-charcoal bg-charcoal text-white"
                             : "border-sand hover:bg-wood-100"
@@ -218,21 +218,21 @@ export default function ProductDetail() {
                 </div>
               )}
               {variante?.estoque === 0 && (
-                <p className="mt-3 text-sm font-medium text-offer">
+                <p className="mt-2 text-xs font-medium text-offer sm:mt-3 sm:text-sm">
                   Esgotado nessa combinação de cor/tamanho.
                 </p>
               )}
             </>
           ) : (
             product.cores.length > 0 && (
-              <div className="mt-7 sm:mt-8">
-                <h3 className="mb-2.5 text-sm font-semibold">Cor</h3>
-                <div className="flex flex-wrap gap-2">
+              <div className="mt-4 sm:mt-8">
+                <h3 className="mb-1.5 text-xs font-semibold sm:mb-2.5 sm:text-sm">Cor</h3>
+                <div className="flex flex-wrap gap-1.5 sm:gap-2">
                   {product.cores.map((c) => (
                     <button
                       key={c}
                       onClick={() => setCor(c)}
-                      className={`rounded-full border px-4 py-2 text-sm ${
+                      className={`rounded-full border px-2.5 py-1 text-xs sm:px-4 sm:py-2 sm:text-sm ${
                         cor === c
                           ? "border-charcoal bg-charcoal text-white"
                           : "border-sand hover:bg-wood-100"
@@ -246,39 +246,39 @@ export default function ProductDetail() {
             )
           )}
 
-          <div className="mt-7 sm:mt-8">
-            <h3 className="mb-2.5 text-sm font-semibold">Quantidade</h3>
-            <div className="flex flex-wrap items-center gap-3">
+          <div className="mt-4 sm:mt-8">
+            <h3 className="mb-1.5 text-xs font-semibold sm:mb-2.5 sm:text-sm">Quantidade</h3>
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
               <div className="inline-flex items-center rounded-full border border-sand">
                 <button
                   onClick={() => setQuantidade((q) => Math.max(1, q - 1))}
-                  className="p-3 hover:bg-wood-100"
+                  className="p-2 hover:bg-wood-100 sm:p-3"
                   aria-label="Diminuir"
                 >
-                  <FiMinus size={14} />
+                  <FiMinus size={13} />
                 </button>
-                <span className="w-8 text-center">{quantidade}</span>
+                <span className="w-7 text-center text-sm sm:w-8 sm:text-base">{quantidade}</span>
                 <button
                   onClick={() =>
                     setQuantidade((q) => Math.min(estoqueAtual, q + 1))
                   }
-                  className="p-3 hover:bg-wood-100"
+                  className="p-2 hover:bg-wood-100 sm:p-3"
                   aria-label="Aumentar"
                 >
-                  <FiPlus size={14} />
+                  <FiPlus size={13} />
                 </button>
               </div>
-              <span className="text-sm text-charcoal/60">
+              <span className="text-xs text-charcoal/60 sm:text-sm">
                 {disponivel ? `${estoqueAtual} em estoque` : "Fora de estoque"}
               </span>
             </div>
           </div>
 
-          <div className="mt-8 flex flex-col gap-3 sm:mt-9 sm:flex-row">
+          <div className="mt-5 flex flex-col gap-2 sm:mt-8 sm:flex-row sm:gap-3">
             <button
               disabled={!disponivel}
               onClick={() => addItem(product, quantidade, variante)}
-              className="flex flex-1 items-center justify-center gap-2 rounded-full bg-charcoal px-6 py-3.5 font-semibold text-white transition hover:bg-charcoal-800 disabled:cursor-not-allowed disabled:opacity-40"
+              className="flex flex-1 items-center justify-center gap-2 rounded-full bg-charcoal px-6 py-3 font-semibold text-white transition hover:bg-charcoal-800 disabled:cursor-not-allowed disabled:opacity-40 sm:py-3.5"
             >
               <FiShoppingBag /> Adicionar ao carrinho
             </button>
@@ -288,22 +288,22 @@ export default function ProductDetail() {
                 addItem(product, quantidade, variante);
                 navigate("/checkout");
               }}
-              className="flex-1 rounded-full border border-charcoal px-6 py-3.5 font-semibold text-charcoal transition hover:bg-wood-100 disabled:cursor-not-allowed disabled:opacity-40"
+              className="flex-1 rounded-full border border-charcoal px-6 py-3 font-semibold text-charcoal transition hover:bg-wood-100 disabled:cursor-not-allowed disabled:opacity-40 sm:py-3.5"
             >
               Comprar agora
             </button>
           </div>
 
-          <div className="mt-3">
+          <div className="mt-2 sm:mt-3">
             <WhatsAppButton
               message={`Olá! Tenho uma dúvida sobre o produto "${product.nome}" da ${STORE_NAME}.`}
-              className="flex w-full items-center justify-center gap-2 rounded-full bg-[#25D366]/10 px-6 py-3.5 font-semibold text-[#128C4A] transition hover:bg-[#25D366]/20"
+              className="flex w-full items-center justify-center gap-2 rounded-full bg-[#25D366]/10 px-6 py-3 font-semibold text-[#128C4A] transition hover:bg-[#25D366]/20 sm:py-3.5"
             >
               Tirar dúvidas pelo WhatsApp
             </WhatsAppButton>
           </div>
 
-          <dl className="mt-9 grid grid-cols-2 gap-4 rounded-2xl bg-white p-5 text-sm shadow-card sm:mt-10">
+          <dl className="mt-5 grid grid-cols-2 gap-4 rounded-2xl bg-white p-4 text-xs shadow-card sm:mt-9 sm:p-5 sm:text-sm">
             <div>
               <dt className="text-charcoal/50">Dimensões</dt>
               <dd className="mt-0.5 font-medium">{product.dimensoes}</dd>
@@ -314,14 +314,14 @@ export default function ProductDetail() {
             </div>
           </dl>
 
-          <div className="mt-7 grid grid-cols-1 gap-3 sm:grid-cols-3">
-            <div className="flex items-center gap-2 text-sm text-charcoal/70">
+          <div className="mt-4 grid grid-cols-1 gap-2 sm:mt-7 sm:grid-cols-3 sm:gap-3">
+            <div className="flex items-center gap-2 text-xs text-charcoal/70 sm:text-sm">
               <FiTruck className="flex-none text-wood-700" /> Entrega em {product.prazoEntrega}
             </div>
-            <div className="flex items-center gap-2 text-sm text-charcoal/70">
+            <div className="flex items-center gap-2 text-xs text-charcoal/70 sm:text-sm">
               <FiCreditCard className="flex-none text-wood-700" /> Pagamento online seguro
             </div>
-            <div className="flex items-center gap-2 text-sm text-charcoal/70">
+            <div className="flex items-center gap-2 text-xs text-charcoal/70 sm:text-sm">
               <FiRefreshCw className="flex-none text-wood-700" /> Troca em até 7 dias
             </div>
           </div>
