@@ -25,7 +25,7 @@ Copie `.env.example` para `.env` e preencha:
 |---|---|
 | `VITE_WHATSAPP_NUMBER` | Número do WhatsApp da loja, só dígitos com DDI+DDD (ex: `5511999999999`). Enquanto vazio, os botões de WhatsApp ficam ocultos. |
 | `VITE_INSTAGRAM_URL` | Link do Instagram da loja. Enquanto vazio, os ícones/seções de Instagram ficam ocultos. |
-| `VITE_INFINITEPAY_PAYMENT_LINK` | Link de pagamento gerado no painel da InfinitePay. Enquanto vazio, o checkout mostra apenas a opção "combinar pelo WhatsApp". |
+| `VITE_INFINITEPAY_HANDLE` | InfiniteTag da conta InfinitePay (sem o `$`), usada para gerar o link de pagamento dinâmico a cada pedido. |
 | `VITE_STORE_EMAIL`, `VITE_STORE_ADDRESS`, `VITE_STORE_HOURS` | Aparecem no rodapé e na página de contato. |
 | `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` | Conectam o banco de dados (veja abaixo). |
 
@@ -120,16 +120,16 @@ Acesse em `/admin/login`. Depois de logado:
 
 ## Pagamento (InfinitePay)
 
-O checkout nunca inventa uma integração de pagamento: ele só usa o link
-que você colar em `VITE_INFINITEPAY_PAYMENT_LINK` (gerado no painel da
-própria InfinitePay). Ao finalizar a compra com essa opção selecionada,
-o cliente é redirecionado para esse link. Sem o link configurado, o
-cliente pode finalizar o pedido combinando o pagamento diretamente pelo
-WhatsApp.
+O checkout usa o Checkout Integrado da InfinitePay: a cada pedido, o
+site chama a API pública da InfinitePay (`src/lib/infinitepay.ts`) e
+gera um link de pagamento com o valor exato do carrinho, na hora — não
+é um link fixo. Só precisa da InfiniteTag da conta (o "@" que aparece
+no canto superior esquerdo do app, sem o `$` na frente), configurada em
+`VITE_INFINITEPAY_HANDLE` (o padrão já é `riquelme-pereira-wkg`).
 
-Se no futuro vocês quiserem uma integração via API (em vez de link
-estático), o ponto de troca é a função `placeOrder` em
-`src/lib/checkout.ts`.
+Se o pedido não conseguir gerar o link (ex: instabilidade da
+InfinitePay), o pedido já fica salvo e o cliente é orientado a
+combinar o pagamento pelo WhatsApp informando o número do pedido.
 
 ## Logo oficial
 

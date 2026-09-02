@@ -1,13 +1,14 @@
 import { useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
-import { FiAlertTriangle, FiLoader } from "react-icons/fi";
+import { FiLoader } from "react-icons/fi";
 import { useCartStore } from "../store/cart";
 import { useLastOrderStore } from "../store/lastOrder";
 import { formatCurrency } from "../lib/format";
 import { placeOrder } from "../lib/checkout";
 import { calcularFrete, type OpcaoFrete } from "../lib/frete";
 import { buscarEnderecoPorCep } from "../lib/cep";
-import { INFINITEPAY_PAYMENT_LINK } from "../config/store";
+import { criarLinkPagamentoInfinitePay } from "../lib/infinitepay";
+import { INFINITEPAY_HANDLE } from "../config/store";
 import type { CustomerData } from "../types";
 
 const FRETE_GRATIS_ACIMA_DE = 1500;
@@ -32,9 +33,7 @@ export default function CheckoutPage() {
   const navigate = useNavigate();
 
   const [cliente, setCliente] = useState<CustomerData>(initialCustomer);
-  const [pagamento, setPagamento] = useState<"infinitepay" | "whatsapp">(
-    INFINITEPAY_PAYMENT_LINK ? "infinitepay" : "whatsapp"
-  );
+  const [pagamento, setPagamento] = useState<"infinitepay" | "whatsapp">("infinitepay");
   const [loading, setLoading] = useState(false);
 
   const [buscandoEndereco, setBuscandoEndereco] = useState(false);
@@ -105,9 +104,32 @@ export default function CheckoutPage() {
       const order = await placeOrder(items, cliente, sub, frete, pagamento);
       setOrder(order);
       clear();
-      if (pagamento === "infinitepay" && INFINITEPAY_PAYMENT_LINK) {
-        window.location.href = INFINITEPAY_PAYMENT_LINK;
+
+      if (pagamento === "infinitepay") {
+        try {
+          const url = await criarLinkPagamentoInfinitePay({
+            handle: INFINITEPAY_HANDLE,
+            orderNsu: String(order.numero),
+            redirectUrl: `${window.location.origin}/pedido-realizado`,
+            itens: items,
+            frete,
+            customer: {
+              name: cliente.nomeCompleto,
+              email: cliente.email,
+              phone_number: cliente.whatsapp,
+            },
+          });
+          window.location.href = url;
+          return;
+        } catch {
+          alert(
+            `Seu pedido #${order.numero} foi registrado, mas não conseguimos abrir o pagamento da InfinitePay agora. Entre em contato pelo WhatsApp informando o número do pedido para combinarmos o pagamento.`
+          );
+          navigate("/pedido-realizado");
+          return;
+        }
       }
+
       navigate("/pedido-realizado");
     } catch (err: any) {
       alert(
@@ -255,16 +277,6 @@ export default function CheckoutPage() {
                 </div>
               </label>
 
-              {!INFINITEPAY_PAYMENT_LINK && (
-                <div className="flex items-start gap-2 rounded-xl bg-offer/10 p-3 text-sm text-offer">
-                  <FiAlertTriangle className="mt-0.5 flex-none" />
-                  <span>
-                    O link de pagamento da InfinitePay ainda não foi
-                    configurado (variável VITE_INFINITEPAY_PAYMENT_LINK).
-                  </span>
-                </div>
-              )}
-
               <label
                 className={`flex cursor-pointer items-center gap-3 rounded-xl border p-4 ${
                   pagamento === "whatsapp"
@@ -366,7 +378,7 @@ export default function CheckoutPage() {
           >
             {loading
               ? "Processando..."
-              : pagamento === "infinitepay" && INFINITEPAY_PAYMENT_LINK
+              : pagamento === "infinitepay"
               ? "Pagar com InfinitePay"
               : "Confirmar pedido"}
           </button>

@@ -10,12 +10,13 @@ export const WHATSAPP_NUMBER = import.meta.env.VITE_WHATSAPP_NUMBER || "";
 export const INSTAGRAM_URL = import.meta.env.VITE_INSTAGRAM_URL || "";
 
 /**
- * Link de pagamento da InfinitePay. Deixe vazio até o cliente enviar o link
- * real gerado no painel da InfinitePay. Enquanto vazio, o checkout mostra
- * um aviso em vez do botão de pagamento.
+ * InfiniteTag da conta InfinitePay (o "@" que aparece no canto superior
+ * esquerdo do app, sem o símbolo $ na frente). É usada para gerar um link
+ * de pagamento dinâmico a cada pedido, com o valor certo do carrinho —
+ * ver src/lib/infinitepay.ts.
  */
-export const INFINITEPAY_PAYMENT_LINK =
-  import.meta.env.VITE_INFINITEPAY_PAYMENT_LINK || "";
+export const INFINITEPAY_HANDLE =
+  import.meta.env.VITE_INFINITEPAY_HANDLE || "riquelme-pereira-wkg";
 
 export const STORE_EMAIL = import.meta.env.VITE_STORE_EMAIL || "";
 export const STORE_ADDRESS = import.meta.env.VITE_STORE_ADDRESS || "";
