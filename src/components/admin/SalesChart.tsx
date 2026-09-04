@@ -29,7 +29,12 @@ function ultimosMeses(quantidade: number) {
 export function SalesChart({ pedidos }: { pedidos: AdminOrder[] }) {
   const meses = ultimosMeses(6);
   const dados = meses.map(({ chave, label }) => {
-    const doMes = pedidos.filter((p) => p.criadoEm.slice(0, 7) === chave && p.status !== "cancelado");
+    const doMes = pedidos.filter(
+      (p) =>
+        p.criadoEm.slice(0, 7) === chave &&
+        p.status !== "cancelado" &&
+        p.status !== "aguardando_pagamento"
+    );
     return {
       mes: label,
       total: doMes.reduce((acc, p) => acc + p.total, 0),

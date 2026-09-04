@@ -131,6 +131,28 @@ Se o pedido não conseguir gerar o link (ex: instabilidade da
 InfinitePay), o pedido já fica salvo e o cliente é orientado a
 combinar o pagamento pelo WhatsApp informando o número do pedido.
 
+### Confirmação automática do pagamento
+
+Um pedido pago pela InfinitePay entra no banco com status
+`aguardando_pagamento` — ele já aparece em `/admin/pedidos`, mas não é
+tratado como um pedido pronto pra despachar até o pagamento ser
+confirmado de verdade. Isso acontece assim:
+
+1. Ao gerar o link de pagamento, o site também passa um `webhook_url`
+   apontando pra `api/infinitepay-webhook.ts`.
+2. Quando o cliente paga, a InfinitePay chama esse webhook.
+3. A função **não confia** só no que chega no webhook — ela liga de
+   volta pra InfinitePay (endpoint `payment_check`) pra confirmar que o
+   pagamento realmente foi aprovado.
+4. Só depois dessa confirmação o pedido vira `confirmado` no banco
+   (usando a Service Role Key do Supabase, configurada em
+   `SUPABASE_SERVICE_ROLE_KEY` — variável só do servidor, nunca exposta
+   ao navegador).
+
+Se o pedido ficar parado em "aguardando pagamento" por muito tempo (ex:
+cliente desistiu no meio do pagamento), o admin pode mudar o status
+manualmente em `/admin/pedidos`.
+
 ## Logo oficial
 
 O componente `src/components/Logo.tsx` hoje mostra um placeholder com o

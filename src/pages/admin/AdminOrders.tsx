@@ -3,12 +3,24 @@ import { FiMapPin, FiPhone, FiMail } from "react-icons/fi";
 import { fetchAdminOrders, adminUpdateOrderStatus, type AdminOrder } from "../../data/adminRepository";
 import { formatCurrency } from "../../lib/format";
 
-const statusOptions = ["novo", "confirmado", "enviado", "entregue", "cancelado"];
+const statusOptions = [
+  "aguardando_pagamento",
+  "novo",
+  "confirmado",
+  "enviado",
+  "entregue",
+  "cancelado",
+];
+
+const statusLabel: Record<string, string> = {
+  aguardando_pagamento: "aguardando pagamento",
+};
 
 const statusColor: Record<string, string> = {
+  aguardando_pagamento: "bg-gold",
   novo: "bg-wood-500",
   confirmado: "bg-charcoal",
-  enviado: "bg-gold",
+  enviado: "bg-wood-300",
   entregue: "bg-green-600",
   cancelado: "bg-offer",
 };
@@ -126,7 +138,7 @@ export default function AdminOrders() {
                       statusColor[p.status] ?? "bg-charcoal"
                     }`}
                   >
-                    {p.status}
+                    {statusLabel[p.status] ?? p.status}
                   </span>
                   <select
                     value={p.status}
@@ -135,7 +147,7 @@ export default function AdminOrders() {
                   >
                     {statusOptions.map((s) => (
                       <option key={s} value={s}>
-                        {s}
+                        {statusLabel[s] ?? s}
                       </option>
                     ))}
                   </select>

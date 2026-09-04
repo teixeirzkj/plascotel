@@ -34,7 +34,11 @@ export default function AdminDashboard() {
       : [{ id: p.id, nome: p.nome, estoque: p.estoque }]
   );
   const estoqueBaixo = linhasEstoque.filter((l) => l.estoque <= 3);
-  const faturamento = pedidos.reduce((acc, p) => acc + p.total, 0);
+  // Não conta pedido cancelado nem pedido da InfinitePay que ainda não foi
+  // pago de verdade — só o que realmente virou receita confirmada.
+  const faturamento = pedidos
+    .filter((p) => p.status !== "cancelado" && p.status !== "aguardando_pagamento")
+    .reduce((acc, p) => acc + p.total, 0);
 
   return (
     <div>

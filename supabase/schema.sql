@@ -142,7 +142,8 @@ create or replace function criar_pedido(
   p_subtotal numeric,
   p_frete numeric,
   p_total numeric,
-  p_forma_pagamento text
+  p_forma_pagamento text,
+  p_status text default 'novo'
 )
 returns table (id uuid, numero integer, criado_em timestamptz)
 language plpgsql
@@ -157,8 +158,8 @@ declare
   v_estoque_atual integer;
   v_variante_id uuid;
 begin
-  insert into pedidos (subtotal, frete, total, forma_pagamento, cliente)
-  values (p_subtotal, p_frete, p_total, p_forma_pagamento, p_cliente)
+  insert into pedidos (subtotal, frete, total, forma_pagamento, cliente, status)
+  values (p_subtotal, p_frete, p_total, p_forma_pagamento, p_cliente, p_status)
   returning pedidos.id, pedidos.numero, pedidos.criado_em
   into v_pedido_id, v_numero, v_criado_em;
 

@@ -17,6 +17,7 @@ interface CriarLinkParams {
   handle: string;
   orderNsu: string;
   redirectUrl: string;
+  webhookUrl?: string;
   itens: CartItem[];
   frete: number;
   customer?: InfinitePayCustomer;
@@ -30,6 +31,7 @@ export async function criarLinkPagamentoInfinitePay({
   handle,
   orderNsu,
   redirectUrl,
+  webhookUrl,
   itens,
   frete,
   customer,
@@ -51,6 +53,7 @@ export async function criarLinkPagamentoInfinitePay({
       handle,
       order_nsu: orderNsu,
       redirect_url: redirectUrl,
+      ...(webhookUrl ? { webhook_url: webhookUrl } : {}),
       items,
       ...(customer ? { customer } : {}),
     }),

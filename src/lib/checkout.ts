@@ -38,6 +38,11 @@ export async function placeOrder(
       p_frete: frete,
       p_total: total,
       p_forma_pagamento: formaPagamento,
+      // Pedido pago pela InfinitePay só vira "confirmado" quando o webhook
+      // (ver api/infinitepay-webhook.ts) avisar que o pagamento foi
+      // realmente feito — até lá fica visível no admin como "aguardando
+      // pagamento", sem ser tratado como um pedido pronto pra despachar.
+      p_status: formaPagamento === "infinitepay" ? "aguardando_pagamento" : "novo",
     });
 
     // Se o Supabase respondeu com erro (ex: estoque insuficiente), a compra

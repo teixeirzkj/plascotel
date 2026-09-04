@@ -111,6 +111,7 @@ export default function CheckoutPage() {
             handle: INFINITEPAY_HANDLE,
             orderNsu: String(order.numero),
             redirectUrl: `${window.location.origin}/pedido-realizado`,
+            webhookUrl: `${window.location.origin}/api/infinitepay-webhook`,
             itens: items,
             frete,
             customer: {
