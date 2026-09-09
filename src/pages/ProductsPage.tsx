@@ -5,6 +5,8 @@ import { FiFilter, FiX } from "react-icons/fi";
 import type { Product } from "../types";
 import { useCatalogStore } from "../store/catalog";
 import { ProductCard } from "../components/ProductCard";
+import { ProductGridSkeleton } from "../components/ProductCardSkeleton";
+import { Breadcrumb, type BreadcrumbItem } from "../components/Breadcrumb";
 import { FiltersPanel, defaultFilters, applyFilters, type Filters } from "../components/FiltersPanel";
 
 const ITENS_POR_PAGINA = 12;
@@ -14,6 +16,7 @@ interface ProductsPageProps {
   subtitle?: string;
   baseFilter?: (p: Product[]) => Product[];
   hideCategoryFilter?: boolean;
+  breadcrumb?: BreadcrumbItem[];
 }
 
 export default function ProductsPage({
@@ -21,9 +24,11 @@ export default function ProductsPage({
   subtitle = "Encontre o produto perfeito para cada ambiente da sua casa.",
   baseFilter,
   hideCategoryFilter,
+  breadcrumb,
 }: ProductsPageProps) {
   const products = useCatalogStore((s) => s.products);
   const categories = useCatalogStore((s) => s.categories);
+  const loaded = useCatalogStore((s) => s.loaded);
   const [searchParams] = useSearchParams();
   const buscaUrl = searchParams.get("busca") ?? "";
   const [filters, setFilters] = useState<Filters>({ ...defaultFilters, busca: buscaUrl });
@@ -55,6 +60,7 @@ export default function ProductsPage({
 
   return (
     <section className="mx-auto max-w-7xl px-6 py-12 md:px-10">
+      {breadcrumb && <Breadcrumb items={breadcrumb} />}
       <div className="mb-8">
         <h1 className="font-display text-2xl sm:text-3xl md:text-4xl">
           {filters.busca ? `Resultados para "${filters.busca}"` : title}
@@ -105,7 +111,9 @@ export default function ProductsPage({
         </aside>
 
         <div>
-          {filtered.length === 0 ? (
+          {!loaded ? (
+            <ProductGridSkeleton />
+          ) : filtered.length === 0 ? (
             <p className="py-16 text-center text-charcoal/60">
               Nenhum produto encontrado com esses filtros.
             </p>

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Navigate, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { FiMinus, FiPlus, FiShoppingBag, FiTruck, FiRefreshCw, FiCreditCard } from "react-icons/fi";
@@ -9,9 +9,28 @@ import { imagensDaVariante } from "../lib/productPricing";
 import { WhatsAppButton } from "../components/WhatsAppButton";
 import { StarRating } from "../components/StarRating";
 import { ProductCard } from "../components/ProductCard";
+import { Breadcrumb } from "../components/Breadcrumb";
 import { STORE_NAME } from "../config/store";
 
 const ESTOQUE_BAIXO_LIMITE = 3;
+
+function ProductDetailSkeleton() {
+  return (
+    <section className="mx-auto max-w-7xl px-4 py-5 sm:px-6 sm:py-10 md:px-10 md:py-14">
+      <div className="grid grid-cols-1 gap-4 sm:gap-8 lg:grid-cols-2 lg:gap-10">
+        <div className="aspect-[5/4] animate-pulse rounded-2xl bg-wood-100 sm:aspect-square" />
+        <div className="mt-2 flex flex-col gap-4 lg:mt-0">
+          <div className="h-3 w-24 animate-pulse rounded bg-wood-100" />
+          <div className="h-8 w-3/4 animate-pulse rounded bg-wood-100" />
+          <div className="h-7 w-32 animate-pulse rounded bg-wood-100" />
+          <div className="h-4 w-full animate-pulse rounded bg-wood-100" />
+          <div className="h-4 w-5/6 animate-pulse rounded bg-wood-100" />
+          <div className="mt-4 h-12 w-full animate-pulse rounded-full bg-wood-100" />
+        </div>
+      </div>
+    </section>
+  );
+}
 
 export default function ProductDetail() {
   const { slug } = useParams();
@@ -30,7 +49,19 @@ export default function ProductDetail() {
   const [quantidade, setQuantidade] = useState(1);
   const [zoomAtivo, setZoomAtivo] = useState(false);
   const [zoomPos, setZoomPos] = useState({ x: 50, y: 50 });
+  const [ctaVisivel, setCtaVisivel] = useState(true);
+  const ctaRef = useRef<HTMLDivElement>(null);
   const addItem = useCartStore((s) => s.addItem);
+
+  // Mostra a barra fixa de compra no celular só quando os botões originais
+  // saem da tela (o usuário rolou pra ler a descrição, ver relacionados etc).
+  useEffect(() => {
+    const el = ctaRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(([entry]) => setCtaVisivel(entry.isIntersecting));
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [product?.id]);
 
   // Cores únicas oferecidas pelo produto (na ordem cadastrada). Os tamanhos
   // mostrados são só os que essa cor realmente tem — não faz sentido exibir
@@ -120,7 +151,7 @@ export default function ProductDetail() {
 
   // Espera o catálogo carregar do banco antes de decidir que o produto não
   // existe (evita redirecionar antes da resposta do Supabase chegar).
-  if (!product && !loaded) return null;
+  if (!product && !loaded) return <ProductDetailSkeleton />;
   if (!product) return <Navigate to="/moveis" replace />;
 
   const categoria = categories.find((c) => c.id === product.categoriaId);
@@ -147,7 +178,18 @@ export default function ProductDetail() {
   }
 
   return (
-    <section className="mx-auto max-w-7xl px-4 py-5 sm:px-6 sm:py-10 md:px-10 md:py-14">
+    <section
+      className={`mx-auto max-w-7xl px-4 py-5 sm:px-6 sm:py-10 md:px-10 md:py-14 ${
+        !ctaVisivel ? "pb-24 lg:pb-14" : ""
+      }`}
+    >
+      <Breadcrumb
+        items={[
+          { label: "Início", to: "/" },
+          ...(categoria ? [{ label: categoria.nome, to: `/categorias/${categoria.slug}` }] : []),
+          { label: product.nome },
+        ]}
+      />
       <div className="grid grid-cols-1 gap-4 sm:gap-8 lg:grid-cols-2 lg:gap-10">
         <div>
           <motion.div
@@ -328,7 +370,7 @@ export default function ProductDetail() {
             </div>
           </div>
 
-          <div className="mt-5 flex flex-col gap-2 sm:mt-8 sm:flex-row sm:gap-3">
+          <div ref={ctaRef} className="mt-5 flex flex-col gap-2 sm:mt-8 sm:flex-row sm:gap-3">
             <button
               disabled={!disponivel}
               onClick={() => addItem(product, quantidade, variante)}
@@ -390,6 +432,23 @@ export default function ProductDetail() {
               <ProductCard key={p.id} product={p} />
             ))}
           </div>
+        </div>
+      )}
+
+      {/* Barra fixa de compra no celular, só quando os botões originais saem da tela */}
+      {!ctaVisivel && (
+        <div className="fixed inset-x-0 bottom-0 z-40 flex items-center gap-3 border-t border-sand bg-white p-3 shadow-soft lg:hidden">
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-xs text-charcoal/60">{product.nome}</p>
+            <p className="font-display text-lg font-semibold">{formatCurrency(precoAtual)}</p>
+          </div>
+          <button
+            disabled={!disponivel}
+            onClick={() => addItem(product, quantidade, variante)}
+            className="flex flex-none items-center justify-center gap-2 rounded-full bg-charcoal px-5 py-3 text-sm font-semibold text-white transition hover:bg-charcoal-800 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            <FiShoppingBag size={16} /> {disponivel ? "Adicionar" : "Esgotado"}
+          </button>
         </div>
       )}
     </section>

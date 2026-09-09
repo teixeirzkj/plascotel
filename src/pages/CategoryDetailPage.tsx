@@ -1,5 +1,6 @@
 import { Navigate, useParams } from "react-router-dom";
 import { useCatalogStore } from "../store/catalog";
+import { ProductGridSkeleton } from "../components/ProductCardSkeleton";
 import ProductsPage from "./ProductsPage";
 
 export default function CategoryDetailPage() {
@@ -12,7 +13,14 @@ export default function CategoryDetailPage() {
   // que a categoria não existe — evita redirecionar antes da resposta do
   // Supabase chegar (ex: categoria criada só no banco, ainda sem estar nos
   // dados de exemplo usados na primeira renderização).
-  if (!categoria && !loaded) return null;
+  if (!categoria && !loaded) {
+    return (
+      <section className="mx-auto max-w-7xl px-6 py-12 md:px-10">
+        <div className="mb-8 h-8 w-48 animate-pulse rounded bg-wood-100" />
+        <ProductGridSkeleton />
+      </section>
+    );
+  }
   if (!categoria) return <Navigate to="/categorias" replace />;
 
   return (
@@ -23,6 +31,7 @@ export default function CategoryDetailPage() {
         produtos.filter((p) => p.categoriaId === categoria.id)
       }
       hideCategoryFilter
+      breadcrumb={[{ label: "Início", to: "/" }, { label: categoria.nome }]}
     />
   );
 }
