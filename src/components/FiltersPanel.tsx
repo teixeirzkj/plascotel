@@ -7,6 +7,8 @@ export interface Filters {
   soDisponiveis: boolean;
   soOfertas: boolean;
   ordenar: "relevancia" | "menor-preco" | "maior-preco" | "recentes" | "mais-vendidos";
+  /** Busca por nome (vem da barra de pesquisa do cabeçalho). */
+  busca: string;
 }
 
 export const defaultFilters: Filters = {
@@ -15,6 +17,7 @@ export const defaultFilters: Filters = {
   soDisponiveis: false,
   soOfertas: false,
   ordenar: "relevancia",
+  busca: "",
 };
 
 interface FiltersPanelProps {
@@ -34,6 +37,21 @@ export function FiltersPanel({ filters, onChange, hideCategoryFilter }: FiltersP
   const categories = useCatalogStore((s) => s.categories);
   return (
     <div className="flex flex-col gap-6">
+      {filters.busca && (
+        <div className="flex items-center justify-between gap-2 rounded-xl bg-wood-100 px-3 py-2 text-sm">
+          <span className="truncate">
+            Buscando por: <strong>{filters.busca}</strong>
+          </span>
+          <button
+            onClick={() => onChange({ ...filters, busca: "" })}
+            aria-label="Limpar busca"
+            className="flex-none text-charcoal/60 hover:text-charcoal"
+          >
+            ×
+          </button>
+        </div>
+      )}
+
       <div>
         <h3 className="mb-3 font-display text-lg">Ordenar por</h3>
         <select
@@ -148,6 +166,12 @@ export function FiltersPanel({ filters, onChange, hideCategoryFilter }: FiltersP
 
 export function applyFilters(produtos: Product[], filters: Filters) {
   let result = [...produtos];
+  if (filters.busca.trim()) {
+    const q = filters.busca.trim().toLowerCase();
+    result = result.filter(
+      (p) => p.nome.toLowerCase().includes(q) || p.descricaoCurta.toLowerCase().includes(q)
+    );
+  }
   if (filters.categoriaId) {
     result = result.filter((p) => p.categoriaId === filters.categoriaId);
   }

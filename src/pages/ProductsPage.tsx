@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { FiFilter, FiX } from "react-icons/fi";
 import type { Product } from "../types";
@@ -23,9 +24,18 @@ export default function ProductsPage({
 }: ProductsPageProps) {
   const products = useCatalogStore((s) => s.products);
   const categories = useCatalogStore((s) => s.categories);
-  const [filters, setFilters] = useState<Filters>(defaultFilters);
+  const [searchParams] = useSearchParams();
+  const buscaUrl = searchParams.get("busca") ?? "";
+  const [filters, setFilters] = useState<Filters>({ ...defaultFilters, busca: buscaUrl });
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const [visiveis, setVisiveis] = useState(ITENS_POR_PAGINA);
+
+  // A busca do cabeçalho manda pra cá via ?busca=... — atualiza o filtro
+  // sempre que o termo na URL mudar (ex: uma nova busca sem sair da página).
+  useEffect(() => {
+    setFilters((f) => ({ ...f, busca: buscaUrl }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [buscaUrl]);
 
   const base = useMemo(
     () => (baseFilter ? baseFilter(products) : products),
@@ -46,8 +56,12 @@ export default function ProductsPage({
   return (
     <section className="mx-auto max-w-7xl px-6 py-12 md:px-10">
       <div className="mb-8">
-        <h1 className="font-display text-2xl sm:text-3xl md:text-4xl">{title}</h1>
-        <p className="mt-2 text-charcoal/60">{subtitle}</p>
+        <h1 className="font-display text-2xl sm:text-3xl md:text-4xl">
+          {filters.busca ? `Resultados para "${filters.busca}"` : title}
+        </h1>
+        <p className="mt-2 text-charcoal/60">
+          {filters.busca ? `${filtered.length} produto(s) encontrado(s).` : subtitle}
+        </p>
       </div>
 
       {!hideCategoryFilter && categories.length > 0 && (

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { FiSearch, FiX } from "react-icons/fi";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useCatalogStore } from "../store/catalog";
 import { formatCurrency } from "../lib/format";
 import { precoExibicao, imagemPrincipal } from "../lib/productPricing";
@@ -13,24 +13,30 @@ interface SearchOverlayProps {
 
 export function SearchOverlay({ open, onClose }: SearchOverlayProps) {
   const products = useCatalogStore((s) => s.products);
+  const navigate = useNavigate();
   const [query, setQuery] = useState("");
 
   useEffect(() => {
     if (!open) setQuery("");
   }, [open]);
 
-  const results = useMemo(() => {
+  const todosResultados = useMemo(() => {
     if (!query.trim()) return [];
     const q = query.toLowerCase();
-    return products
-      .filter(
-        (p) =>
-          p.nome.toLowerCase().includes(q) ||
-          p.descricaoCurta.toLowerCase().includes(q) ||
-          p.categoriaId.toLowerCase().includes(q)
-      )
-      .slice(0, 6);
+    return products.filter(
+      (p) =>
+        p.nome.toLowerCase().includes(q) ||
+        p.descricaoCurta.toLowerCase().includes(q) ||
+        p.categoriaId.toLowerCase().includes(q)
+    );
   }, [query, products]);
+  const results = todosResultados.slice(0, 6);
+
+  function verTodosResultados() {
+    if (!query.trim()) return;
+    navigate(`/moveis?busca=${encodeURIComponent(query.trim())}`);
+    onClose();
+  }
 
   return (
     <AnimatePresence>
@@ -55,6 +61,9 @@ export function SearchOverlay({ open, onClose }: SearchOverlayProps) {
                 autoFocus
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") verTodosResultados();
+                }}
                 placeholder="Digite o nome do produto..."
                 className="w-full bg-transparent text-lg outline-none placeholder:text-charcoal/40"
               />
@@ -88,6 +97,14 @@ export function SearchOverlay({ open, onClose }: SearchOverlayProps) {
                   </div>
                 </Link>
               ))}
+              {todosResultados.length > 0 && (
+                <button
+                  onClick={verTodosResultados}
+                  className="mt-1 w-full rounded-xl p-3 text-center text-sm font-semibold text-wood-700 hover:bg-wood-100"
+                >
+                  Ver todos os {todosResultados.length} resultados para "{query}"
+                </button>
+              )}
             </div>
           </motion.div>
         </motion.div>
