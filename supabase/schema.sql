@@ -139,6 +139,13 @@ alter table pedido_itens add column if not exists variante_id uuid references pr
 -- Estoque automático
 -- ---------------------------------------------------------
 
+-- Remove uma versão antiga de 6 parâmetros (sem p_status) que pode existir
+-- em bancos criados antes desse campo ganhar um valor padrão — "create or
+-- replace" só substitui uma função de MESMA assinatura; com assinaturas
+-- diferentes, as duas ficam coexistindo e o Postgres não consegue mais
+-- decidir qual chamar quando p_status é omitido ("ambiguous function call").
+drop function if exists criar_pedido(jsonb, jsonb, numeric, numeric, numeric, text);
+
 -- Cria o pedido inteiro (pedido + itens) e dá baixa no estoque em uma
 -- única transação. Usa "for update" para travar a linha do produto e
 -- evitar que dois clientes comprem a última unidade ao mesmo tempo.
