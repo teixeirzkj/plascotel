@@ -3,7 +3,7 @@ import { FiCheck } from "react-icons/fi";
 import { STORE_NAME } from "../config/store";
 
 const pontos = [
-  "Móveis, cama, mesa e banho, decoração e muito mais em um só lugar",
+  "Cama, mesa e banho, pratos, perfumaria e decoração em um só lugar",
   "Qualidade em cada detalhe, do material ao acabamento",
   "Atendimento próximo, direto pelo WhatsApp",
   "Compra segura, do carrinho ao pagamento",
@@ -39,8 +39,8 @@ export function WhyChooseUs() {
           Tudo que sua casa precisa, em um só lugar
         </h2>
         <p className="mt-4 text-charcoal/70">
-          Na {STORE_NAME}, do móvel da sala à toalha do banheiro, dos pratos
-          da mesa às colchas do quarto — cuidamos de cada detalhe pra sua
+          Na {STORE_NAME}, da toalha do banheiro aos pratos da mesa, das
+          colchas do quarto à perfumaria — cuidamos de cada detalhe pra sua
           casa ficar completa, com qualidade e o seu estilo.
         </p>
         <ul className="mt-6 flex flex-col gap-3">

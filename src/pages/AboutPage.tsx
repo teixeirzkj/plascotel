@@ -14,8 +14,9 @@ export default function AboutPage() {
         </h1>
         <p className="mt-4 text-charcoal/70">
           Nascemos com o propósito de levar tudo o que uma casa precisa —
-          móveis, cama, mesa e banho, pratos, decoração e muito mais — com
-          qualidade, design moderno e atendimento próximo para cada cliente.
+          cama, mesa e banho, pratos, perfumaria e decoração e muito mais —
+          com qualidade, design moderno e atendimento próximo para cada
+          cliente.
           Selecionamos cada peça pensando em conforto, durabilidade e
           estilo, para que sua casa reflita quem você é.
         </p>

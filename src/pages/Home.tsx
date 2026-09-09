@@ -17,7 +17,7 @@ export default function Home() {
 
       <ProductsPage
         title="Todos os produtos"
-        subtitle="Móveis, cama, mesa e banho, pratos, decoração e muito mais para a sua casa."
+        subtitle="Cama, mesa e banho, pratos, perfumaria e decoração e muito mais para a sua casa."
       />
 
       <WhyChooseUs />
