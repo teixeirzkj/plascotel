@@ -1,0 +1,289 @@
+import type { VercelRequest, VercelResponse } from "@vercel/node";
+import { createClient } from "@supabase/supabase-js";
+import { cotarFrete, fretePadraoPara, limparCep, type ItemFrete } from "./_lib/frete";
+
+/**
+ * Cria o pedido E (se for InfinitePay) o link de pagamento — tudo decidido
+ * AQUI, no servidor, a partir do banco. O navegador manda só
+ * produtoId/varianteId/quantidade; preço, frete e o link de cobrança nunca
+ * passam pela mão do cliente. Ver PLASCOTEL_pagamento_seguro.md.
+ *
+ * Variáveis de ambiente necessárias (sem prefixo VITE_):
+ *   SUPABASE_SERVICE_ROLE_KEY, INFINITEPAY_HANDLE, SITE_URL,
+ *   INFINITEPAY_WEBHOOK_SECRET (opcional)
+ */
+
+interface ItemPedidoBody {
+  produtoId: string;
+  varianteId?: string | null;
+  quantidade: number;
+}
+
+interface ClienteBody {
+  nomeCompleto: string;
+  whatsapp: string;
+  email: string;
+  cep: string;
+  estado: string;
+  cidade: string;
+  bairro: string;
+  rua: string;
+  numero: string;
+  complemento?: string;
+}
+
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (req.method !== "POST") {
+    res.status(405).json({ error: "Método não permitido." });
+    return;
+  }
+
+  const supabaseUrl = process.env.VITE_SUPABASE_URL;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!supabaseUrl || !serviceRoleKey) {
+    res.status(500).json({ error: "Loja não configurada. Tente novamente mais tarde." });
+    return;
+  }
+  const supabase = createClient(supabaseUrl, serviceRoleKey);
+
+  const body = (req.body ?? {}) as {
+    itens?: ItemPedidoBody[];
+    cliente?: ClienteBody;
+    formaPagamento?: "infinitepay" | "whatsapp";
+    cepDestino?: string;
+    freteOpcaoId?: number | null;
+  };
+
+  const itensBrutos = Array.isArray(body.itens) ? body.itens : [];
+  const cliente = body.cliente;
+  const formaPagamento = body.formaPagamento;
+
+  if (itensBrutos.length === 0) {
+    res.status(400).json({ error: "Carrinho vazio." });
+    return;
+  }
+  if (formaPagamento !== "infinitepay" && formaPagamento !== "whatsapp") {
+    res.status(400).json({ error: "Forma de pagamento inválida." });
+    return;
+  }
+  if (
+    !cliente?.nomeCompleto ||
+    !cliente?.whatsapp ||
+    !cliente?.email ||
+    !cliente?.rua ||
+    !cliente?.numero ||
+    !cliente?.cidade ||
+    !cliente?.estado ||
+    !cliente?.cep
+  ) {
+    res.status(400).json({ error: "Preencha todos os dados obrigatórios." });
+    return;
+  }
+
+  // Busca preço/peso/dimensões de cada item DIRETO NO BANCO — o corpo da
+  // requisição só tem produtoId/varianteId/quantidade.
+  const produtoIds = [...new Set(itensBrutos.map((i) => i.produtoId).filter(Boolean))];
+  const varianteIds = [...new Set(itensBrutos.map((i) => i.varianteId).filter(Boolean))] as string[];
+
+  const [
+    { data: produtos, error: errProdutos },
+    { data: variantes, error: errVariantes },
+    { data: produtosComVariante, error: errProdutosComVariante },
+  ] = await Promise.all([
+    supabase
+      .from("produtos")
+      .select("id, preco, preco_promocional, peso, altura, largura, comprimento")
+      .in("id", produtoIds),
+    varianteIds.length > 0
+      ? supabase
+          .from("produto_variantes")
+          .select("id, produto_id, preco, preco_promocional, peso, altura, largura, comprimento")
+          .in("id", varianteIds)
+      : Promise.resolve({ data: [] as Record<string, unknown>[], error: null }),
+    supabase.from("produto_variantes").select("produto_id").in("produto_id", produtoIds),
+  ]);
+
+  if (errProdutos || errVariantes || errProdutosComVariante) {
+    res.status(500).json({ error: "Não foi possível validar os itens do carrinho." });
+    return;
+  }
+
+  const produtoPorId = new Map((produtos ?? []).map((p: any) => [p.id, p]));
+  const variantePorId = new Map((variantes ?? []).map((v: any) => [v.id, v]));
+  // Produto com variações não pode ser comprado pelo preço base (ver
+  // criar_pedido_seguro, que também recusa isso — esta é só a checagem
+  // antecipada, pra dar um erro amigável sem gastar uma chamada ao banco).
+  const produtoIdsComVariante = new Set((produtosComVariante ?? []).map((v: any) => v.produto_id));
+
+  const itensFrete: ItemFrete[] = [];
+  let subtotalEstimado = 0;
+
+  for (const item of itensBrutos) {
+    const qtd = Number(item.quantidade);
+    if (!Number.isInteger(qtd) || qtd < 1 || qtd > 50) {
+      res.status(400).json({ error: "Quantidade inválida." });
+      return;
+    }
+
+    const variante = item.varianteId ? variantePorId.get(item.varianteId) : null;
+    const produto = variante ? produtoPorId.get(variante.produto_id) : produtoPorId.get(item.produtoId);
+
+    if (!produto) {
+      res.status(400).json({ error: "Um dos produtos do carrinho não existe mais." });
+      return;
+    }
+    if (!variante && produtoIdsComVariante.has(item.produtoId)) {
+      res.status(400).json({ error: "Selecione uma variação válida para este produto." });
+      return;
+    }
+
+    const fonte: any = variante ?? produto;
+    const preco = Number(fonte.preco_promocional ?? fonte.preco);
+    subtotalEstimado += preco * qtd;
+    itensFrete.push({
+      peso: fonte.peso ?? undefined,
+      altura: fonte.altura ?? undefined,
+      largura: fonte.largura ?? undefined,
+      comprimento: fonte.comprimento ?? undefined,
+      quantidade: qtd,
+      valor: preco * qtd,
+    });
+  }
+
+  // Cota o frete de novo, no servidor — usa só o ID da opção que o cliente
+  // escolheu pra achar o preço real; nunca o valor que ele mandou.
+  let frete = fretePadraoPara(subtotalEstimado);
+  const cepLimpo = limparCep(body.cepDestino || cliente.cep);
+  if (cepLimpo.length === 8) {
+    try {
+      const resultado = await cotarFrete(cepLimpo, itensFrete);
+      if (resultado.configurado && resultado.opcoes.length > 0) {
+        const escolhida =
+          body.freteOpcaoId != null ? resultado.opcoes.find((o) => o.id === body.freteOpcaoId) : null;
+        frete = escolhida ? escolhida.preco : resultado.opcoes[0].preco;
+      }
+    } catch {
+      // Mantém o frete padrão se o Melhor Envio falhar — não trava a compra.
+    }
+  }
+
+  const { data, error } = await supabase.rpc("criar_pedido_seguro", {
+    p_itens: itensBrutos.map((i) => ({
+      produto_id: i.produtoId,
+      variante_id: i.varianteId ?? null,
+      quantidade: i.quantidade,
+    })),
+    p_cliente: cliente,
+    p_frete: frete,
+    p_forma_pagamento: formaPagamento,
+  });
+
+  if (error) {
+    res.status(400).json({ error: error.message || "Não foi possível criar o pedido." });
+    return;
+  }
+
+  const pedido = (Array.isArray(data) ? data[0] : data) as {
+    id: string;
+    numero: number;
+    order_nsu: string;
+    subtotal: number;
+    frete: number;
+    total: number;
+    criado_em: string;
+  };
+
+  if (formaPagamento === "whatsapp") {
+    res.status(200).json({
+      id: pedido.id,
+      numero: pedido.numero,
+      orderNsu: pedido.order_nsu,
+      subtotal: Number(pedido.subtotal),
+      frete: Number(pedido.frete),
+      total: Number(pedido.total),
+      criadoEm: pedido.criado_em,
+    });
+    return;
+  }
+
+  // InfinitePay: o link é gerado AQUI, com os itens que a gente mesmo
+  // acabou de gravar em pedido_itens — o cliente não tem como cobrar um
+  // valor diferente do que o pedido realmente tem.
+  const handle = process.env.INFINITEPAY_HANDLE;
+  const webhookSecret = process.env.INFINITEPAY_WEBHOOK_SECRET;
+  const siteUrl = (process.env.SITE_URL || `https://${req.headers.host}`).replace(/\/$/, "");
+  if (!handle || !webhookSecret) {
+    // Sem o segredo, o webhook (agora fail-closed) nunca aceitaria a
+    // confirmação desse pagamento — melhor não abrir o link do que gerar
+    // um pedido que nunca vai conseguir ser confirmado automaticamente.
+    console.error("criar-pagamento: INFINITEPAY_HANDLE/INFINITEPAY_WEBHOOK_SECRET não configurados");
+    res.status(500).json({ error: "Pagamento online não está configurado no momento." });
+    return;
+  }
+
+  const { data: itensSalvos } = await supabase
+    .from("pedido_itens")
+    .select("nome, preco_unitario, quantidade")
+    .eq("pedido_id", pedido.id);
+
+  const items = (itensSalvos ?? []).map((i: any) => ({
+    quantity: i.quantidade,
+    price: Math.round(Number(i.preco_unitario) * 100),
+    description: String(i.nome).slice(0, 100),
+  }));
+  if (Number(pedido.frete) > 0) {
+    items.push({
+      quantity: 1,
+      price: Math.round(Number(pedido.frete) * 100),
+      description: "Frete",
+    });
+  }
+
+  const webhookUrl = `${siteUrl}/api/infinitepay-webhook?t=${webhookSecret}`;
+
+  try {
+    const linkResponse = await fetch("https://api.checkout.infinitepay.io/links", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        handle,
+        order_nsu: pedido.order_nsu,
+        redirect_url: `${siteUrl}/pedido-realizado?order_nsu=${pedido.order_nsu}`,
+        webhook_url: webhookUrl,
+        items,
+        customer: {
+          name: cliente.nomeCompleto,
+          email: cliente.email,
+          phone_number: cliente.whatsapp,
+        },
+      }),
+    });
+
+    if (!linkResponse.ok) {
+      throw new Error(`infinitepay /links respondeu ${linkResponse.status}`);
+    }
+    const linkData = (await linkResponse.json()) as { url?: string };
+    if (!linkData.url) {
+      throw new Error("resposta da InfinitePay sem url");
+    }
+
+    res.status(200).json({
+      id: pedido.id,
+      numero: pedido.numero,
+      orderNsu: pedido.order_nsu,
+      subtotal: Number(pedido.subtotal),
+      frete: Number(pedido.frete),
+      total: Number(pedido.total),
+      criadoEm: pedido.criado_em,
+      paymentUrl: linkData.url,
+    });
+  } catch (err) {
+    console.error("criar-pagamento: erro ao gerar link InfinitePay", err);
+    // O pedido já existe (aguardando_pagamento, com prazo de expiração) —
+    // o cliente pode falar pelo WhatsApp informando o número do pedido.
+    res.status(502).json({
+      error: "Pedido registrado, mas não foi possível abrir o pagamento agora.",
+      numero: pedido.numero,
+    });
+  }
+}

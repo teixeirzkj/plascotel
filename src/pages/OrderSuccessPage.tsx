@@ -1,99 +1,235 @@
-import { Navigate, Link } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Navigate, Link, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { FaWhatsapp } from "react-icons/fa";
+import { FiLoader, FiCheckCircle, FiXCircle, FiAlertTriangle } from "react-icons/fi";
 import { useLastOrderStore } from "../store/lastOrder";
 import { formatCurrency } from "../lib/format";
 import { buildWhatsAppLink, STORE_NAME } from "../config/store";
+import { supabase } from "../lib/supabase";
 
+const TENTATIVAS_MAX = 20;
+const INTERVALO_MS = 3000;
+
+interface StatusPublico {
+  status: string;
+  numero: number;
+  total: number;
+}
+
+/**
+ * O status real do pedido (pago ou não) só existe no banco — nunca no
+ * localStorage do navegador, que só guarda os dados exibidos aqui. Por isso
+ * a página consulta a função pública `status_pedido_publico` (ver
+ * supabase/schema.sql) usando o order_nsu da URL, em vez de simplesmente
+ * assumir "pagamento realizado" ao chegar aqui. Ver
+ * PLASCOTEL_pagamento_seguro.md.
+ */
 export default function OrderSuccessPage() {
   const order = useLastOrderStore((s) => s.order);
+  const [searchParams] = useSearchParams();
+  const orderNsu = searchParams.get("order_nsu") ?? order?.orderNsu ?? null;
 
-  if (!order) return <Navigate to="/" replace />;
+  const [statusRemoto, setStatusRemoto] = useState<StatusPublico | null>(null);
+  const [tentativas, setTentativas] = useState(0);
+  const [naoEncontrado, setNaoEncontrado] = useState(false);
 
-  const listaProdutos = order.itens
-    .map(
-      (i) =>
-        `• ${i.nome} — ${i.quantidade} unidade(s) — ${formatCurrency(
-          i.precoUnitario * i.quantidade
-        )}`
-    )
-    .join("\n");
+  useEffect(() => {
+    if (!orderNsu || !supabase) return;
+    if (statusRemoto && statusRemoto.status !== "aguardando_pagamento") return;
+    if (tentativas >= TENTATIVAS_MAX) return;
 
-  const mensagem = `Olá! Gostaria de confirmar meu pedido na ${STORE_NAME}.
-Pedido: #${order.numero}
+    let cancelado = false;
+    const timer = setTimeout(
+      async () => {
+        const { data, error } = await supabase!.rpc("status_pedido_publico", {
+          p_order_nsu: orderNsu,
+        });
+        if (cancelado) return;
+        const linha = Array.isArray(data) ? data[0] : data;
+        if (!error && linha) {
+          setStatusRemoto({ status: linha.status, numero: linha.numero, total: Number(linha.total) });
+        } else if (!error) {
+          setNaoEncontrado(true);
+        }
+        setTentativas((t) => t + 1);
+      },
+      tentativas === 0 ? 0 : INTERVALO_MS
+    );
+
+    return () => {
+      cancelado = true;
+      clearTimeout(timer);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [orderNsu, tentativas]);
+
+  if (!order && !orderNsu) return <Navigate to="/" replace />;
+
+  const status = statusRemoto?.status ?? (orderNsu ? null : "novo");
+  const numero = statusRemoto?.numero ?? order?.numero;
+  const total = statusRemoto?.total ?? order?.total ?? 0;
+
+  const listaProdutos = order
+    ? order.itens
+        .map(
+          (i) =>
+            `• ${i.nome} — ${i.quantidade} unidade(s) — ${formatCurrency(i.precoUnitario * i.quantidade)}`
+        )
+        .join("\n")
+    : "";
+
+  const mensagem = order
+    ? `Olá! Gostaria de confirmar meu pedido na ${STORE_NAME}.
+Pedido: #${numero}
 Produtos:
 ${listaProdutos}
-Total: ${formatCurrency(order.total)}
-Forma de pagamento: ${
-    order.formaPagamento === "infinitepay" ? "InfinitePay" : "A combinar"
-  }
+Total: ${formatCurrency(total)}
+Forma de pagamento: ${order.formaPagamento === "infinitepay" ? "InfinitePay" : "A combinar"}
 Nome: ${order.cliente.nomeCompleto}
 Endereço: ${order.cliente.rua}, ${order.cliente.numero} - ${order.cliente.bairro}, ${order.cliente.cidade}/${order.cliente.estado}
 
-Obrigado!`;
+Obrigado!`
+    : `Olá! Gostaria de saber sobre o meu pedido #${numero} na ${STORE_NAME}.`;
 
   return (
     <section className="mx-auto max-w-2xl px-6 py-16 text-center md:py-24">
-      <motion.div
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ type: "spring", stiffness: 200, damping: 16 }}
-      >
-        <h1 className="font-display text-2xl sm:text-3xl md:text-4xl">
-          Pedido realizado com sucesso! 🎉
-        </h1>
-        <p className="mt-2 text-charcoal/60">
-          Pedido #{order.numero} — confirme o envio pelo WhatsApp para
-          agilizarmos a entrega.
-        </p>
-      </motion.div>
+      <StatusHeader
+        status={status}
+        numero={numero}
+        esgotado={tentativas >= TENTATIVAS_MAX}
+        naoEncontrado={naoEncontrado && !statusRemoto}
+      />
 
-      <div className="mt-8 rounded-2xl bg-white p-6 text-left shadow-card">
-        <h2 className="mb-3 font-display text-lg">Resumo do pedido</h2>
-        <ul className="flex flex-col gap-2 border-b border-sand pb-3 text-sm">
-          {order.itens.map((item) => (
-            <li key={item.productId} className="flex justify-between">
-              <span className="text-charcoal/70">
-                {item.nome} × {item.quantidade}
-              </span>
-              <span className="font-medium">
-                {formatCurrency(item.precoUnitario * item.quantidade)}
-              </span>
-            </li>
-          ))}
-        </ul>
-        <div className="flex justify-between pt-3 text-lg font-semibold">
-          <span>Total</span>
-          <span>{formatCurrency(order.total)}</span>
+      {order && (
+        <div className="mt-8 rounded-2xl bg-white p-6 text-left shadow-card">
+          <h2 className="mb-3 font-display text-lg">Resumo do pedido</h2>
+          <ul className="flex flex-col gap-2 border-b border-sand pb-3 text-sm">
+            {order.itens.map((item) => (
+              <li key={item.productId} className="flex justify-between">
+                <span className="text-charcoal/70">
+                  {item.nome} × {item.quantidade}
+                </span>
+                <span className="font-medium">{formatCurrency(item.precoUnitario * item.quantidade)}</span>
+              </li>
+            ))}
+          </ul>
+          <div className="flex justify-between pt-3 text-lg font-semibold">
+            <span>Total</span>
+            <span>{formatCurrency(total)}</span>
+          </div>
+          <div className="mt-4 border-t border-sand pt-3 text-sm text-charcoal/70">
+            <p>
+              <strong>Cliente:</strong> {order.cliente.nomeCompleto}
+            </p>
+            <p>
+              <strong>Endereço:</strong> {order.cliente.rua}, {order.cliente.numero} -{" "}
+              {order.cliente.bairro}, {order.cliente.cidade}/{order.cliente.estado}
+            </p>
+            <p>
+              <strong>Pagamento:</strong> {order.formaPagamento === "infinitepay" ? "InfinitePay" : "A combinar"}
+            </p>
+          </div>
         </div>
-        <div className="mt-4 border-t border-sand pt-3 text-sm text-charcoal/70">
-          <p><strong>Cliente:</strong> {order.cliente.nomeCompleto}</p>
-          <p>
-            <strong>Endereço:</strong> {order.cliente.rua}, {order.cliente.numero} -{" "}
-            {order.cliente.bairro}, {order.cliente.cidade}/{order.cliente.estado}
-          </p>
-          <p>
-            <strong>Pagamento:</strong>{" "}
-            {order.formaPagamento === "infinitepay" ? "InfinitePay" : "A combinar"}
-          </p>
-        </div>
-      </div>
+      )}
 
-      <a
-        href={buildWhatsAppLink(mensagem)}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="mt-8 flex w-full items-center justify-center gap-3 rounded-full bg-[#25D366] py-4 text-lg font-semibold text-white shadow-soft transition hover:brightness-95"
-      >
-        <FaWhatsapp size={24} /> Enviar pedido pelo WhatsApp
-      </a>
+      {status !== "cancelado" && (
+        <a
+          href={buildWhatsAppLink(mensagem)}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-8 flex w-full items-center justify-center gap-3 rounded-full bg-[#25D366] py-4 text-lg font-semibold text-white shadow-soft transition hover:brightness-95"
+        >
+          <FaWhatsapp size={24} /> Falar pelo WhatsApp
+        </a>
+      )}
 
-      <Link
-        to="/moveis"
-        className="mt-4 inline-block text-sm font-semibold text-wood-700 hover:underline"
-      >
+      <Link to="/moveis" className="mt-4 inline-block text-sm font-semibold text-wood-700 hover:underline">
         Continuar comprando
       </Link>
     </section>
+  );
+}
+
+function StatusHeader({
+  status,
+  numero,
+  esgotado,
+  naoEncontrado,
+}: {
+  status: string | null;
+  numero?: number;
+  esgotado: boolean;
+  naoEncontrado: boolean;
+}) {
+  const anim = {
+    initial: { opacity: 0, scale: 0.9 },
+    animate: { opacity: 1, scale: 1 },
+    transition: { type: "spring" as const, stiffness: 200, damping: 16 },
+  };
+
+  if (naoEncontrado) {
+    return (
+      <motion.div {...anim}>
+        <FiXCircle className="mx-auto mb-3 text-offer" size={40} />
+        <h1 className="font-display text-2xl sm:text-3xl">Pedido não encontrado</h1>
+        <p className="mt-2 text-charcoal/60">
+          Não encontramos esse pedido. Se você concluiu uma compra, fale com a gente pelo WhatsApp.
+        </p>
+      </motion.div>
+    );
+  }
+
+  if (status === "aguardando_pagamento" || status === null) {
+    return (
+      <motion.div {...anim}>
+        <FiLoader className="mx-auto mb-3 animate-spin text-wood-500" size={40} />
+        <h1 className="font-display text-2xl sm:text-3xl">Confirmando seu pagamento...</h1>
+        <p className="mt-2 text-charcoal/60">
+          {esgotado
+            ? `Pedido #${numero} recebido. A confirmação está demorando mais que o normal — se você já pagou, ela deve chegar em instantes; senão, fale pelo WhatsApp que a gente confere pra você.`
+            : `Pedido #${numero} registrado. Assim que a InfinitePay confirmar o pagamento, atualizamos automaticamente esta página.`}
+        </p>
+      </motion.div>
+    );
+  }
+
+  if (status === "divergencia_valor") {
+    return (
+      <motion.div {...anim}>
+        <FiAlertTriangle className="mx-auto mb-3 text-offer" size={40} />
+        <h1 className="font-display text-2xl sm:text-3xl">Precisamos confirmar seu pagamento</h1>
+        <p className="mt-2 text-charcoal/60">
+          Recebemos um pagamento para o pedido #{numero}, mas o valor não bateu com o total do pedido.
+          Fale com a gente pelo WhatsApp para resolvermos rapidinho.
+        </p>
+      </motion.div>
+    );
+  }
+
+  if (status === "cancelado") {
+    return (
+      <motion.div {...anim}>
+        <FiXCircle className="mx-auto mb-3 text-offer" size={40} />
+        <h1 className="font-display text-2xl sm:text-3xl">Pedido cancelado</h1>
+        <p className="mt-2 text-charcoal/60">
+          O pedido #{numero} foi cancelado (o pagamento não foi concluído a tempo). Você pode fazer um
+          novo pedido quando quiser.
+        </p>
+      </motion.div>
+    );
+  }
+
+  return (
+    <motion.div {...anim}>
+      <FiCheckCircle className="mx-auto mb-3 text-green-600" size={40} />
+      <h1 className="font-display text-2xl sm:text-3xl">Pedido realizado com sucesso! 🎉</h1>
+      <p className="mt-2 text-charcoal/60">
+        Pedido #{numero}
+        {status === "novo"
+          ? " — confirme o envio pelo WhatsApp para agilizarmos a entrega."
+          : " — pagamento confirmado. Já estamos preparando tudo!"}
+      </p>
+    </motion.div>
   );
 }

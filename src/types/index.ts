@@ -88,6 +88,8 @@ export interface CustomerData {
 export interface Order {
   id: string;
   numero: number;
+  /** Token imprevisível (uuid sem hífen) usado para consultar o status do pedido publicamente. */
+  orderNsu?: string;
   itens: CartItem[];
   subtotal: number;
   frete: number;
@@ -95,4 +97,6 @@ export interface Order {
   formaPagamento: "infinitepay" | "whatsapp";
   cliente: CustomerData;
   criadoEm: string;
+  /** Link de pagamento da InfinitePay, quando formaPagamento = "infinitepay". */
+  paymentUrl?: string;
 }

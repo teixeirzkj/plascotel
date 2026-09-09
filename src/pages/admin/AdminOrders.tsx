@@ -9,11 +9,13 @@ const statusOptions = [
   "confirmado",
   "enviado",
   "entregue",
+  "divergencia_valor",
   "cancelado",
 ];
 
 const statusLabel: Record<string, string> = {
   aguardando_pagamento: "aguardando pagamento",
+  divergencia_valor: "valor divergente",
 };
 
 const statusColor: Record<string, string> = {
@@ -22,6 +24,7 @@ const statusColor: Record<string, string> = {
   confirmado: "bg-charcoal",
   enviado: "bg-wood-300",
   entregue: "bg-green-600",
+  divergencia_valor: "bg-offer",
   cancelado: "bg-offer",
 };
 
@@ -181,6 +184,14 @@ export default function AdminOrders() {
                       <span>{endereco}</span>
                     </p>
                   )}
+                </div>
+              )}
+
+              {(p.transactionNsu || p.valorPago != null) && (
+                <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 rounded-xl bg-wood-50 p-3 text-xs text-charcoal/70">
+                  {p.transactionNsu && <span>Transação: {p.transactionNsu}</span>}
+                  {p.valorPago != null && <span>Valor pago: {formatCurrency(p.valorPago)}</span>}
+                  {p.pagoEm && <span>Pago em: {new Date(p.pagoEm).toLocaleString("pt-BR")}</span>}
                 </div>
               )}
 

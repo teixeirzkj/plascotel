@@ -362,6 +362,355 @@ create policy "pedido_itens_admin_all" on pedido_itens
   with check (auth.role() = 'authenticated');
 
 -- ---------------------------------------------------------
+-- Pagamento verificado (InfinitePay) — preço e link decididos no
+-- servidor, nunca no navegador. Ver api/criar-pagamento.ts e
+-- api/infinitepay-webhook.ts. Bloco idempotente, pode rodar de novo.
+-- ---------------------------------------------------------
+
+alter table pedidos add column if not exists order_nsu text;
+alter table pedidos add column if not exists transaction_nsu text;
+alter table pedidos add column if not exists invoice_slug text;
+alter table pedidos add column if not exists valor_pago numeric(10, 2);
+alter table pedidos add column if not exists pago_em timestamptz;
+alter table pedidos add column if not exists expira_em timestamptz;
+
+-- Pedidos antigos (de antes desta coluna existir) ganham um order_nsu
+-- derivado do id, só para nunca ficar duplicado/vazio à toa.
+update pedidos set order_nsu = replace(id::text, '-', '') where order_nsu is null;
+
+create unique index if not exists pedidos_order_nsu_key
+  on pedidos (order_nsu);
+
+-- Idempotência do webhook: a mesma transação da InfinitePay nunca
+-- confirma dois pedidos diferentes (nulls não colidem entre si).
+create unique index if not exists pedidos_transaction_nsu_key
+  on pedidos (transaction_nsu) where transaction_nsu is not null;
+
+create index if not exists pedidos_expira_em_idx
+  on pedidos (expira_em) where status = 'aguardando_pagamento';
+
+-- Cria o pedido com o preço decidido AQUI, a partir do banco — o
+-- navegador manda só produto_id/variante_id/quantidade, nunca preço.
+-- Só o servidor (service_role, dentro de api/criar-pagamento.ts) pode
+-- chamar; o front nunca tem a service role key.
+create or replace function criar_pedido_seguro(
+  p_itens jsonb,            -- [{ produto_id, variante_id, quantidade }]
+  p_cliente jsonb,
+  p_frete numeric,          -- já cotado/validado pelo servidor
+  p_forma_pagamento text    -- 'infinitepay' | 'whatsapp'
+)
+returns table (
+  id uuid,
+  numero integer,
+  order_nsu text,
+  subtotal numeric,
+  frete numeric,
+  total numeric,
+  criado_em timestamptz
+)
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_pedido_id uuid;
+  v_numero integer;
+  v_criado_em timestamptz;
+  v_order_nsu text;
+  v_item jsonb;
+  v_qtd integer;
+  v_produto_id uuid;
+  v_variante_id uuid;
+  v_preco numeric;
+  v_nome text;
+  v_estoque integer;
+  v_subtotal numeric := 0;
+  v_frete numeric;
+  v_status text;
+  v_normalizados jsonb := '[]'::jsonb;
+begin
+  if p_forma_pagamento not in ('infinitepay', 'whatsapp') then
+    raise exception 'Forma de pagamento inválida.';
+  end if;
+
+  v_frete := coalesce(p_frete, 0);
+  if v_frete < 0 or v_frete > 1000 then
+    raise exception 'Valor de frete fora do intervalo permitido.';
+  end if;
+
+  if jsonb_array_length(coalesce(p_itens, '[]'::jsonb)) = 0 then
+    raise exception 'Pedido sem itens.';
+  end if;
+
+  -- Passo 1: resolve preço e nome de cada item NO BANCO — nunca confia
+  -- em preço/nome vindo do corpo da requisição.
+  for v_item in select * from jsonb_array_elements(p_itens)
+  loop
+    v_qtd := (v_item->>'quantidade')::integer;
+    if v_qtd is null or v_qtd < 1 or v_qtd > 50 then
+      raise exception 'Quantidade inválida.';
+    end if;
+
+    v_produto_id := nullif(v_item->>'produto_id', '')::uuid;
+    v_variante_id := nullif(v_item->>'variante_id', '')::uuid;
+
+    if v_variante_id is not null then
+      select
+        coalesce(v.preco_promocional, v.preco),
+        p.nome || case
+          when v.cor <> '' and v.tamanho <> '' then ' (' || v.cor || ', ' || v.tamanho || ')'
+          when v.cor <> '' then ' (' || v.cor || ')'
+          when v.tamanho <> '' then ' (' || v.tamanho || ')'
+          else ''
+        end,
+        v.produto_id
+      into v_preco, v_nome, v_produto_id
+      from produto_variantes v
+      join produtos p on p.id = v.produto_id
+      where v.id = v_variante_id;
+
+      if v_preco is null then
+        raise exception 'Variação % não encontrada.', v_variante_id;
+      end if;
+    else
+      -- Produto com variações não pode ser comprado pelo preço base: isso
+      -- deixaria escolher, só omitindo variante_id, o preço mais barato
+      -- entre o do produto e o de qualquer variação dele.
+      if exists (select 1 from produto_variantes where produto_id = v_produto_id) then
+        raise exception 'Selecione uma variação válida para este produto.';
+      end if;
+
+      select coalesce(preco_promocional, preco), nome
+      into v_preco, v_nome
+      from produtos
+      where id = v_produto_id;
+
+      if v_preco is null then
+        raise exception 'Produto % não encontrado.', v_produto_id;
+      end if;
+    end if;
+
+    v_subtotal := v_subtotal + (v_preco * v_qtd);
+    v_normalizados := v_normalizados || jsonb_build_object(
+      'produto_id', v_produto_id,
+      'variante_id', v_variante_id,
+      'nome', v_nome,
+      'preco_unitario', v_preco,
+      'quantidade', v_qtd
+    );
+  end loop;
+
+  v_status := case
+    when p_forma_pagamento = 'infinitepay' then 'aguardando_pagamento'
+    else 'novo'
+  end;
+
+  insert into pedidos (
+    subtotal, frete, total, forma_pagamento, cliente, status, expira_em
+  )
+  values (
+    v_subtotal,
+    v_frete,
+    v_subtotal + v_frete,
+    p_forma_pagamento,
+    p_cliente,
+    v_status,
+    case when v_status = 'aguardando_pagamento' then now() + interval '40 minutes' end
+  )
+  returning pedidos.id, pedidos.numero, pedidos.criado_em
+  into v_pedido_id, v_numero, v_criado_em;
+
+  -- 32 caracteres, sem hífen, imprevisível: serve de order_nsu na
+  -- InfinitePay e de token da consulta pública de status.
+  v_order_nsu := replace(v_pedido_id::text, '-', '');
+  update pedidos set order_nsu = v_order_nsu where pedidos.id = v_pedido_id;
+
+  -- Passo 2: trava a linha, dá baixa no estoque e grava os itens —
+  -- mesmo padrão de lock (for update) já usado em criar_pedido.
+  for v_item in select * from jsonb_array_elements(v_normalizados)
+  loop
+    v_qtd := (v_item->>'quantidade')::integer;
+    v_produto_id := nullif(v_item->>'produto_id', '')::uuid;
+    v_variante_id := nullif(v_item->>'variante_id', '')::uuid;
+
+    if v_variante_id is not null then
+      select estoque into v_estoque
+      from produto_variantes where id = v_variante_id for update;
+      if v_estoque < v_qtd then
+        raise exception 'Estoque insuficiente para %.', v_item->>'nome';
+      end if;
+      update produto_variantes set estoque = estoque - v_qtd where id = v_variante_id;
+    elsif v_produto_id is not null then
+      select estoque into v_estoque
+      from produtos where id = v_produto_id for update;
+      if v_estoque < v_qtd then
+        raise exception 'Estoque insuficiente para %.', v_item->>'nome';
+      end if;
+      update produtos set estoque = estoque - v_qtd where id = v_produto_id;
+    end if;
+
+    insert into pedido_itens (
+      pedido_id, produto_id, variante_id, nome, preco_unitario, quantidade
+    )
+    values (
+      v_pedido_id,
+      v_produto_id,
+      v_variante_id,
+      v_item->>'nome',
+      (v_item->>'preco_unitario')::numeric,
+      v_qtd
+    );
+  end loop;
+
+  return query
+    select v_pedido_id, v_numero, v_order_nsu,
+           v_subtotal, v_frete, v_subtotal + v_frete, v_criado_em;
+end;
+$$;
+
+-- Só o servidor (service_role) chama — nunca o navegador.
+revoke all on function criar_pedido_seguro(jsonb, jsonb, numeric, text) from public;
+revoke all on function criar_pedido_seguro(jsonb, jsonb, numeric, text) from anon;
+grant execute on function criar_pedido_seguro(jsonb, jsonb, numeric, text) to service_role;
+
+-- Fecha a porta antiga: a criar_pedido original aceita preço e status
+-- de quem chama, então o público não pode mais chamá-la diretamente.
+-- Continua existindo para a venda manual do admin (createManualSale),
+-- feita por um usuário autenticado.
+revoke execute on function criar_pedido(jsonb, jsonb, numeric, numeric, numeric, text, text)
+  from public;
+revoke execute on function criar_pedido(jsonb, jsonb, numeric, numeric, numeric, text, text)
+  from anon;
+grant execute on function criar_pedido(jsonb, jsonb, numeric, numeric, numeric, text, text)
+  to authenticated;
+
+-- Confirma o pagamento de forma idempotente: chamar duas vezes com o
+-- mesmo transaction_nsu não gera efeito duplicado. Só o servidor chama,
+-- depois de já ter confirmado com a própria InfinitePay (payment_check)
+-- que aquele pagamento é real.
+create or replace function confirmar_pagamento_pedido(
+  p_order_nsu text,
+  p_transaction_nsu text,
+  p_invoice_slug text,
+  p_valor_pago numeric default null   -- null = não foi possível ler o valor
+)
+returns text
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_id uuid;
+  v_status text;
+  v_total numeric;
+  v_transaction text;
+  v_valor_confirmado numeric;
+begin
+  select id, status, total, transaction_nsu
+  into v_id, v_status, v_total, v_transaction
+  from pedidos
+  where order_nsu = p_order_nsu
+  for update;
+
+  if v_id is null then
+    return 'nao_encontrado';
+  end if;
+
+  if v_status <> 'aguardando_pagamento' then
+    if v_transaction is not null then
+      return 'ja_confirmado';
+    end if;
+    return 'status_' || v_status;
+  end if;
+
+  -- O nome do campo de valor pago na resposta da InfinitePay (e se vem em
+  -- reais ou centavos) ainda não foi confirmado com um pagamento real — ver
+  -- api/infinitepay-webhook.ts. Em vez de adivinhar a unidade, testamos as
+  -- duas interpretações contra o total real do pedido (tolerância de 2
+  -- centavos) e aceitamos a que bater; nenhuma batendo, é divergência de
+  -- valor de verdade.
+  if p_valor_pago is null then
+    v_valor_confirmado := v_total;
+  elsif abs(p_valor_pago - v_total) <= 0.02 then
+    v_valor_confirmado := p_valor_pago;
+  elsif abs(p_valor_pago / 100 - v_total) <= 0.02 then
+    v_valor_confirmado := p_valor_pago / 100;
+  else
+    update pedidos
+    set status = 'divergencia_valor',
+        transaction_nsu = p_transaction_nsu,
+        invoice_slug = p_invoice_slug,
+        valor_pago = p_valor_pago
+    where id = v_id;
+    return 'valor_divergente';
+  end if;
+
+  update pedidos
+  set status = 'confirmado',
+      transaction_nsu = p_transaction_nsu,
+      invoice_slug = p_invoice_slug,
+      valor_pago = v_valor_confirmado,
+      pago_em = now(),
+      expira_em = null
+  where id = v_id;
+
+  return 'confirmado';
+end;
+$$;
+
+revoke all on function confirmar_pagamento_pedido(text, text, text, numeric) from public;
+revoke all on function confirmar_pagamento_pedido(text, text, text, numeric) from anon;
+grant execute on function confirmar_pagamento_pedido(text, text, text, numeric) to service_role;
+
+-- Status público (para a tela de retorno do cliente). Devolve só o
+-- mínimo — o order_nsu é imprevisível (uuid sem hífen), então funciona
+-- como token: quem não fez o pedido não descobre o total de ninguém.
+create or replace function status_pedido_publico(p_order_nsu text)
+returns table (status text, numero integer, total numeric)
+language sql
+security definer
+set search_path = public
+as $$
+  select p.status, p.numero, p.total
+  from pedidos p
+  where p.order_nsu = p_order_nsu;
+$$;
+
+grant execute on function status_pedido_publico(text) to anon;
+grant execute on function status_pedido_publico(text) to authenticated;
+
+-- Cancela pedidos "aguardando_pagamento" cujo prazo (expira_em, definido
+-- em criar_pedido_seguro) já passou — cliente que abriu o checkout e
+-- nunca pagou. O gatilho trg_restaurar_estoque já devolve o estoque
+-- sozinho quando o status vira 'cancelado'.
+create or replace function expirar_pedidos_pendentes()
+returns integer
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_total integer;
+begin
+  with expirados as (
+    update pedidos
+    set status = 'cancelado'
+    where status = 'aguardando_pagamento'
+      and expira_em is not null
+      and expira_em < now()
+    returning 1
+  )
+  select count(*) into v_total from expirados;
+
+  return v_total;
+end;
+$$;
+
+revoke all on function expirar_pedidos_pendentes() from public;
+revoke all on function expirar_pedidos_pendentes() from anon;
+grant execute on function expirar_pedidos_pendentes() to service_role;
+
+-- ---------------------------------------------------------
 -- Dados iniciais (opcional): descomente para popular o banco com os
 -- mesmos produtos de exemplo usados no site antes de conectar o banco.
 -- ---------------------------------------------------------

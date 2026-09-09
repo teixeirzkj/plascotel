@@ -13,6 +13,9 @@ dist-ssr
 *.local
 .env
 
+# Backups locais do catálogo (gerados antes de mudanças em massa)
+backups/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

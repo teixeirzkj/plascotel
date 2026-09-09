@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { FiBox, FiTag, FiShoppingCart, FiAlertTriangle } from "react-icons/fi";
 import { fetchProducts, fetchCategories } from "../../data/repository";
-import { fetchAdminOrders, type AdminOrder } from "../../data/adminRepository";
+import { fetchAdminOrders, STATUS_FATURAVEIS, type AdminOrder } from "../../data/adminRepository";
 import { isSupabaseConfigured } from "../../lib/supabase";
 import { formatCurrency } from "../../lib/format";
 import { SalesChart } from "../../components/admin/SalesChart";
@@ -34,10 +34,9 @@ export default function AdminDashboard() {
       : [{ id: p.id, nome: p.nome, estoque: p.estoque }]
   );
   const estoqueBaixo = linhasEstoque.filter((l) => l.estoque <= 3);
-  // Não conta pedido cancelado nem pedido da InfinitePay que ainda não foi
-  // pago de verdade — só o que realmente virou receita confirmada.
+  // Só conta o que está na lista de status faturáveis — ver STATUS_FATURAVEIS.
   const faturamento = pedidos
-    .filter((p) => p.status !== "cancelado" && p.status !== "aguardando_pagamento")
+    .filter((p) => STATUS_FATURAVEIS.includes(p.status))
     .reduce((acc, p) => acc + p.total, 0);
 
   return (

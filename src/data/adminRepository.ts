@@ -161,14 +161,26 @@ export async function adminDeleteCategory(id: string) {
   if (error) throw error;
 }
 
+/**
+ * Status que contam como receita de verdade no dashboard/gráfico — uma
+ * lista de inclusão, não de exclusão. Assim, um status novo que apareça no
+ * futuro (ex: "divergencia_valor") nunca vira receita por padrão; alguém
+ * precisa incluí-lo aqui de propósito.
+ */
+export const STATUS_FATURAVEIS = ["novo", "confirmado", "enviado", "entregue"];
+
 export interface AdminOrder {
   id: string;
   numero: number;
+  orderNsu: string | null;
   subtotal: number;
   frete: number;
   total: number;
   formaPagamento: string;
   status: string;
+  transactionNsu: string | null;
+  valorPago: number | null;
+  pagoEm: string | null;
   cliente: Record<string, string>;
   criadoEm: string;
   itens: { nome: string; quantidade: number; precoUnitario: number }[];
@@ -178,17 +190,23 @@ export async function fetchAdminOrders(): Promise<AdminOrder[]> {
   const db = requireSupabase();
   const { data, error } = await db
     .from("pedidos")
-    .select("*, pedido_itens(nome, quantidade, preco_unitario)")
+    .select(
+      "*, transaction_nsu, valor_pago, pago_em, order_nsu, pedido_itens(nome, quantidade, preco_unitario)"
+    )
     .order("criado_em", { ascending: false });
   if (error) throw error;
   return (data ?? []).map((row: any) => ({
     id: row.id,
     numero: row.numero,
+    orderNsu: row.order_nsu,
     subtotal: Number(row.subtotal),
     frete: Number(row.frete),
     total: Number(row.total),
     formaPagamento: row.forma_pagamento,
     status: row.status,
+    transactionNsu: row.transaction_nsu,
+    valorPago: row.valor_pago != null ? Number(row.valor_pago) : null,
+    pagoEm: row.pago_em,
     cliente: row.cliente,
     criadoEm: row.criado_em,
     itens: (row.pedido_itens ?? []).map((i: any) => ({

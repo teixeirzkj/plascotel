@@ -7,8 +7,6 @@ import { formatCurrency } from "../lib/format";
 import { placeOrder } from "../lib/checkout";
 import { calcularFrete, type OpcaoFrete } from "../lib/frete";
 import { buscarEnderecoPorCep } from "../lib/cep";
-import { criarLinkPagamentoInfinitePay } from "../lib/infinitepay";
-import { INFINITEPAY_HANDLE } from "../config/store";
 import type { CustomerData } from "../types";
 
 const FRETE_GRATIS_ACIMA_DE = 1500;
@@ -101,38 +99,29 @@ export default function CheckoutPage() {
     e.preventDefault();
     setLoading(true);
     try {
-      const order = await placeOrder(items, cliente, sub, frete, pagamento);
+      const order = await placeOrder(items, cliente, pagamento, {
+        cepDestino: cliente.cep,
+        freteOpcaoId: freteSelecionadoId,
+      });
       setOrder(order);
       clear();
 
-      if (pagamento === "infinitepay") {
-        try {
-          const url = await criarLinkPagamentoInfinitePay({
-            handle: INFINITEPAY_HANDLE,
-            orderNsu: String(order.numero),
-            redirectUrl: `${window.location.origin}/pedido-realizado`,
-            webhookUrl: `${window.location.origin}/api/infinitepay-webhook`,
-            itens: items,
-            frete,
-            customer: {
-              name: cliente.nomeCompleto,
-              email: cliente.email,
-              phone_number: cliente.whatsapp,
-            },
-          });
-          window.location.href = url;
-          return;
-        } catch {
-          alert(
-            `Seu pedido #${order.numero} foi registrado, mas não conseguimos abrir o pagamento da InfinitePay agora. Entre em contato pelo WhatsApp informando o número do pedido para combinarmos o pagamento.`
-          );
-          navigate("/pedido-realizado");
-          return;
-        }
+      if (pagamento === "infinitepay" && order.paymentUrl) {
+        window.location.href = order.paymentUrl;
+        return;
       }
 
-      navigate("/pedido-realizado");
+      navigate(order.orderNsu ? `/pedido-realizado?order_nsu=${order.orderNsu}` : "/pedido-realizado");
     } catch (err: any) {
+      if (err?.numero) {
+        // O pedido chegou a ser criado (com prazo pra expirar sozinho se
+        // não for pago), só o link de pagamento não abriu.
+        alert(
+          `Seu pedido #${err.numero} foi registrado, mas não conseguimos abrir o pagamento da InfinitePay agora. Entre em contato pelo WhatsApp informando o número do pedido para combinarmos o pagamento.`
+        );
+        navigate("/");
+        return;
+      }
       alert(
         err.message ??
           "Não foi possível concluir a compra. Verifique o estoque dos itens e tente novamente."

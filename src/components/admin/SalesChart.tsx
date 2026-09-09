@@ -7,7 +7,7 @@ import {
   Tooltip,
   CartesianGrid,
 } from "recharts";
-import type { AdminOrder } from "../../data/adminRepository";
+import { STATUS_FATURAVEIS, type AdminOrder } from "../../data/adminRepository";
 import { formatCurrency } from "../../lib/format";
 
 const MESES = [
@@ -30,10 +30,7 @@ export function SalesChart({ pedidos }: { pedidos: AdminOrder[] }) {
   const meses = ultimosMeses(6);
   const dados = meses.map(({ chave, label }) => {
     const doMes = pedidos.filter(
-      (p) =>
-        p.criadoEm.slice(0, 7) === chave &&
-        p.status !== "cancelado" &&
-        p.status !== "aguardando_pagamento"
+      (p) => p.criadoEm.slice(0, 7) === chave && STATUS_FATURAVEIS.includes(p.status)
     );
     return {
       mes: label,

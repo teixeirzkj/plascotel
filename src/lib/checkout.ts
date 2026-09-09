@@ -1,13 +1,12 @@
-import { supabase, isSupabaseConfigured } from "./supabase";
-import { descricaoVariante } from "./productPricing";
+import { isSupabaseConfigured } from "./supabase";
 import type { CartItem, CustomerData, Order } from "../types";
 
 /**
- * Cria o pedido. Quando o Supabase estiver configurado, chama a função
- * `criar_pedido` (ver supabase/schema.sql), que insere o pedido e os itens
- * e dá baixa automática no estoque dentro de uma única transação atômica —
- * evitando vender um produto que ficou sem estoque entre dois pedidos
- * simultâneos.
+ * Cria o pedido chamando a função serverless api/criar-pagamento.ts, que
+ * decide preço, frete e (se for InfinitePay) gera o link de pagamento —
+ * tudo a partir do banco, no servidor. O navegador manda só
+ * produtoId/varianteId/quantidade, nunca preço (ver
+ * PLASCOTEL_pagamento_seguro.md).
  *
  * Sem Supabase configurado, o pedido é gerado só localmente (modo de
  * demonstração), para que o fluxo de compra continue testável antes de o
@@ -16,61 +15,63 @@ import type { CartItem, CustomerData, Order } from "../types";
 export async function placeOrder(
   itens: CartItem[],
   cliente: CustomerData,
-  subtotal: number,
-  frete: number,
-  formaPagamento: "infinitepay" | "whatsapp"
+  formaPagamento: "infinitepay" | "whatsapp",
+  opts: { cepDestino?: string; freteOpcaoId?: number | null } = {}
 ): Promise<Order> {
-  const total = subtotal + frete;
-
-  if (isSupabaseConfigured && supabase) {
-    const { data, error } = await supabase.rpc("criar_pedido", {
-      p_itens: itens.map((i) => ({
-        produto_id: i.productId,
-        variante_id: i.varianteId ?? null,
-        nome: descricaoVariante(i.cor, i.tamanho)
-          ? `${i.nome} (${descricaoVariante(i.cor, i.tamanho)})`
-          : i.nome,
-        preco_unitario: i.precoUnitario,
-        quantidade: i.quantidade,
-      })),
-      p_cliente: cliente,
-      p_subtotal: subtotal,
-      p_frete: frete,
-      p_total: total,
-      p_forma_pagamento: formaPagamento,
-      // Pedido pago pela InfinitePay só vira "confirmado" quando o webhook
-      // (ver api/infinitepay-webhook.ts) avisar que o pagamento foi
-      // realmente feito — até lá fica visível no admin como "aguardando
-      // pagamento", sem ser tratado como um pedido pronto pra despachar.
-      p_status: formaPagamento === "infinitepay" ? "aguardando_pagamento" : "novo",
+  if (isSupabaseConfigured) {
+    const response = await fetch("/api/criar-pagamento", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        itens: itens.map((i) => ({
+          produtoId: i.productId,
+          varianteId: i.varianteId ?? null,
+          quantidade: i.quantidade,
+        })),
+        cliente,
+        formaPagamento,
+        cepDestino: opts.cepDestino,
+        freteOpcaoId: opts.freteOpcaoId,
+      }),
     });
 
-    // Se o Supabase respondeu com erro (ex: estoque insuficiente), a compra
-    // realmente falhou — não pode cair no modo demonstração como se tivesse
+    const data = await response.json();
+
+    // Se o servidor respondeu com erro, a compra realmente falhou (ou nem
+    // chegou a existir) — não pode cair no modo demonstração como se tivesse
     // dado certo, senão o cliente acha que comprou e o pedido nunca existiu.
-    if (error) throw error;
+    if (!response.ok) {
+      const erro: Error & { numero?: number } = new Error(
+        data.error || "Não foi possível concluir a compra. Verifique o estoque dos itens e tente novamente."
+      );
+      erro.numero = data.numero;
+      throw erro;
+    }
 
     return {
       id: data.id,
       numero: data.numero,
+      orderNsu: data.orderNsu,
       itens,
-      subtotal,
-      frete,
-      total,
+      subtotal: data.subtotal,
+      frete: data.frete,
+      total: data.total,
       formaPagamento,
       cliente,
-      criadoEm: data.criado_em,
+      criadoEm: data.criadoEm,
+      paymentUrl: data.paymentUrl,
     };
   }
 
+  const subtotal = itens.reduce((acc, i) => acc + i.precoUnitario * i.quantidade, 0);
   const numero = Math.floor(1000 + Math.random() * 9000);
   return {
     id: crypto.randomUUID(),
     numero,
     itens,
     subtotal,
-    frete,
-    total,
+    frete: 0,
+    total: subtotal,
     formaPagamento,
     cliente,
     criadoEm: new Date().toISOString(),
