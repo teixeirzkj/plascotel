@@ -692,6 +692,12 @@ grant execute on function confirmar_pagamento_pedido(text, text, text, numeric) 
 -- Status público (para a tela de retorno do cliente). Devolve só o
 -- mínimo — o order_nsu é imprevisível (uuid sem hífen), então funciona
 -- como token: quem não fez o pedido não descobre o total de ninguém.
+--
+-- "create or replace" não permite mudar as colunas de retorno de uma
+-- função existente (é considerado "mudar o tipo de retorno") — por isso
+-- precisa apagar a versão antiga antes de recriar com a coluna nova.
+drop function if exists status_pedido_publico(text);
+
 create or replace function status_pedido_publico(p_order_nsu text)
 returns table (status text, numero integer, total numeric, codigo_rastreio text)
 language sql
