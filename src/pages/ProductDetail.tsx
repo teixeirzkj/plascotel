@@ -374,7 +374,7 @@ export default function ProductDetail() {
             <button
               disabled={!disponivel}
               onClick={() => addItem(product, quantidade, variante)}
-              className="flex flex-1 items-center justify-center gap-2 rounded-full bg-charcoal px-6 py-3 font-semibold text-white transition hover:bg-charcoal-800 disabled:cursor-not-allowed disabled:opacity-40 sm:py-3.5"
+              className="flex flex-1 items-center justify-center gap-2 rounded-full bg-charcoal px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-charcoal-800 disabled:cursor-not-allowed disabled:opacity-40 sm:px-6 sm:py-3.5 sm:text-base"
             >
               <FiShoppingBag /> Adicionar ao carrinho
             </button>
@@ -384,7 +384,7 @@ export default function ProductDetail() {
                 addItem(product, quantidade, variante);
                 navigate("/checkout");
               }}
-              className="flex-1 rounded-full border border-charcoal px-6 py-3 font-semibold text-charcoal transition hover:bg-wood-100 disabled:cursor-not-allowed disabled:opacity-40 sm:py-3.5"
+              className="flex-1 rounded-full border border-charcoal px-4 py-2.5 text-sm font-semibold text-charcoal transition hover:bg-wood-100 disabled:cursor-not-allowed disabled:opacity-40 sm:px-6 sm:py-3.5 sm:text-base"
             >
               Comprar agora
             </button>
@@ -393,7 +393,7 @@ export default function ProductDetail() {
           <div className="mt-2 sm:mt-3">
             <WhatsAppButton
               message={`Olá! Tenho uma dúvida sobre o produto "${product.nome}" da ${STORE_NAME}.`}
-              className="flex w-full items-center justify-center gap-2 rounded-full bg-[#25D366]/10 px-6 py-3 font-semibold text-[#128C4A] transition hover:bg-[#25D366]/20 sm:py-3.5"
+              className="flex w-full items-center justify-center gap-2 rounded-full bg-[#25D366]/10 px-4 py-2.5 text-sm font-semibold text-[#128C4A] transition hover:bg-[#25D366]/20 sm:px-6 sm:py-3.5 sm:text-base"
             >
               Tirar dúvidas pelo WhatsApp
             </WhatsAppButton>

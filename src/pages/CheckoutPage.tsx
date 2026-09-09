@@ -246,7 +246,7 @@ export default function CheckoutPage() {
             <h2 className="mb-4 font-display text-xl">Forma de pagamento</h2>
             <div className="flex flex-col gap-3">
               <label
-                className={`flex cursor-pointer items-center gap-3 rounded-xl border p-4 ${
+                className={`flex cursor-pointer items-center gap-2.5 rounded-xl border px-3 py-2.5 ${
                   pagamento === "infinitepay"
                     ? "border-charcoal bg-wood-50"
                     : "border-sand"
@@ -259,16 +259,11 @@ export default function CheckoutPage() {
                   onChange={() => setPagamento("infinitepay")}
                   className="h-4 w-4 accent-wood-700"
                 />
-                <div>
-                  <p className="font-medium">Pagamento online (InfinitePay)</p>
-                  <p className="text-sm text-charcoal/60">
-                    Cartão, Pix ou boleto via InfinitePay.
-                  </p>
-                </div>
+                <p className="text-sm font-medium">Pagamento online</p>
               </label>
 
               <label
-                className={`flex cursor-pointer items-center gap-3 rounded-xl border p-4 ${
+                className={`flex cursor-pointer items-center gap-2.5 rounded-xl border px-3 py-2.5 ${
                   pagamento === "whatsapp"
                     ? "border-charcoal bg-wood-50"
                     : "border-sand"
@@ -281,13 +276,7 @@ export default function CheckoutPage() {
                   onChange={() => setPagamento("whatsapp")}
                   className="h-4 w-4 accent-wood-700"
                 />
-                <div>
-                  <p className="font-medium">Combinar pagamento pelo WhatsApp</p>
-                  <p className="text-sm text-charcoal/60">
-                    Finalize o pedido e acerte o pagamento diretamente com a
-                    nossa equipe.
-                  </p>
-                </div>
+                <p className="text-sm font-medium">Pagamento pelo WhatsApp</p>
               </label>
             </div>
           </div>
