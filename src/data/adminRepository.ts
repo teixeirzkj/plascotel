@@ -228,6 +228,25 @@ export async function adminUpdateOrderStatus(id: string, status: string) {
   if (error) throw error;
 }
 
+/**
+ * Apaga todos os pedidos. Antes de apagar, cancela os que ainda não estavam
+ * cancelados — assim o gatilho `trg_restaurar_estoque` devolve ao estoque
+ * qualquer unidade que estivesse reservada por um pedido pendente/confirmado,
+ * em vez de a apagar o pedido "esconder" um desconto de estoque nunca
+ * devolvido.
+ */
+export async function adminDeleteAllOrders() {
+  const db = requireSupabase();
+  const { error: errCancelar } = await db
+    .from("pedidos")
+    .update({ status: "cancelado" })
+    .neq("status", "cancelado");
+  if (errCancelar) throw errCancelar;
+
+  const { error } = await db.from("pedidos").delete().not("id", "is", null);
+  if (error) throw error;
+}
+
 export interface ManualSaleItem {
   produtoId: string;
   varianteId?: string | null;

@@ -70,27 +70,11 @@ export default function OrderSuccessPage() {
   const numero = statusRemoto?.numero ?? order?.numero;
   const total = statusRemoto?.total ?? order?.total ?? 0;
 
-  const listaProdutos = order
-    ? order.itens
-        .map(
-          (i) =>
-            `• ${i.nome} — ${i.quantidade} unidade(s) — ${formatCurrency(i.precoUnitario * i.quantidade)}`
-        )
-        .join("\n")
-    : "";
-
+  const numeroExibido = numero ?? "?";
   const mensagem = order
-    ? `Olá! Gostaria de confirmar meu pedido na ${STORE_NAME}.
-Pedido: #${numero}
-Produtos:
-${listaProdutos}
-Total: ${formatCurrency(total)}
-Forma de pagamento: ${order.formaPagamento === "infinitepay" ? "InfinitePay" : "A combinar"}
-Nome: ${order.cliente.nomeCompleto}
-Endereço: ${order.cliente.rua}, ${order.cliente.numero} - ${order.cliente.bairro}, ${order.cliente.cidade}/${order.cliente.estado}
-
-Obrigado!`
-    : `Olá! Gostaria de saber sobre o meu pedido #${numero} na ${STORE_NAME}.`;
+    ? `Olá! Gostaria de confirmar meu pedido #${numeroExibido} na ${STORE_NAME}.
+Endereço de entrega: ${order.cliente.rua}, ${order.cliente.numero} - ${order.cliente.bairro}, ${order.cliente.cidade}/${order.cliente.estado}`
+    : `Olá! Gostaria de saber sobre o meu pedido #${numeroExibido} na ${STORE_NAME}.`;
 
   return (
     <section className="mx-auto max-w-2xl px-6 py-16 text-center md:py-24">

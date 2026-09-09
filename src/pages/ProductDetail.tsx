@@ -97,6 +97,21 @@ export default function ProductDetail() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [variante?.id]);
 
+  // Pré-carrega as fotos de TODAS as cores/tamanhos assim que o produto
+  // abre, para trocar de variação parecer instantâneo em vez de esperar a
+  // imagem baixar na hora do clique.
+  useEffect(() => {
+    if (!product) return;
+    const todasImagens = temVariantes
+      ? product.variantes!.flatMap((v) => (v.imagens.length > 0 ? v.imagens : product.imagens))
+      : product.imagens;
+    [...new Set(todasImagens)].forEach((src) => {
+      const img = new Image();
+      img.src = src;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [product?.id]);
+
   // Espera o catálogo carregar do banco antes de decidir que o produto não
   // existe (evita redirecionar antes da resposta do Supabase chegar).
   if (!product && !loaded) return null;
