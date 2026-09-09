@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
-import { FiMapPin, FiPhone, FiMail, FiChevronDown, FiTrash2 } from "react-icons/fi";
+import { FiMapPin, FiPhone, FiMail, FiChevronDown, FiTrash2, FiDownload, FiSearch, FiTruck } from "react-icons/fi";
 import {
   fetchAdminOrders,
   adminUpdateOrderStatus,
   adminDeleteAllOrders,
+  adminUpdateOrderTracking,
   type AdminOrder,
 } from "../../data/adminRepository";
 import { formatCurrency } from "../../lib/format";
@@ -37,13 +38,40 @@ function mesAtual() {
   return new Date().toISOString().slice(0, 7); // "AAAA-MM"
 }
 
+/** Pedido que chegou a ir pro InfinitePay mas nunca foi pago = carrinho abandonado. */
+function ehCarrinhoAbandonado(p: AdminOrder) {
+  return p.formaPagamento === "infinitepay" && p.status === "cancelado";
+}
+
+function paraCsv(pedidos: AdminOrder[]) {
+  const linhas = [
+    ["Número", "Data", "Cliente", "WhatsApp", "Status", "Forma de pagamento", "Subtotal", "Frete", "Total"],
+    ...pedidos.map((p) => [
+      String(p.numero),
+      new Date(p.criadoEm).toLocaleString("pt-BR"),
+      p.cliente?.nomeCompleto ?? "",
+      p.cliente?.whatsapp ?? "",
+      statusLabel[p.status] ?? p.status,
+      p.formaPagamento,
+      p.subtotal.toFixed(2).replace(".", ","),
+      p.frete.toFixed(2).replace(".", ","),
+      p.total.toFixed(2).replace(".", ","),
+    ]),
+  ];
+  return linhas.map((linha) => linha.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(";")).join("\r\n");
+}
+
 export default function AdminOrders() {
   const [pedidos, setPedidos] = useState<AdminOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [mes, setMes] = useState<string>(""); // "" = todos os meses
+  const [busca, setBusca] = useState("");
+  const [soAbandonados, setSoAbandonados] = useState(false);
   const [expandidos, setExpandidos] = useState<Record<string, boolean>>({});
   const [apagando, setApagando] = useState(false);
+  const [rastreios, setRastreios] = useState<Record<string, string>>({});
+  const [salvandoRastreio, setSalvandoRastreio] = useState<string | null>(null);
 
   function reload() {
     setLoading(true);
@@ -55,11 +83,21 @@ export default function AdminOrders() {
 
   useEffect(reload, []);
 
-  const pedidosFiltrados = mes
-    ? pedidos.filter((p) => p.criadoEm.slice(0, 7) === mes)
-    : pedidos;
+  const buscaNormalizada = busca.trim().toLowerCase();
+  const pedidosFiltrados = pedidos.filter((p) => {
+    if (mes && p.criadoEm.slice(0, 7) !== mes) return false;
+    if (soAbandonados && !ehCarrinhoAbandonado(p)) return false;
+    if (buscaNormalizada) {
+      const alvo = `${p.numero} ${p.cliente?.nomeCompleto ?? ""}`.toLowerCase();
+      if (!alvo.includes(buscaNormalizada)) return false;
+    }
+    return true;
+  });
 
   const totalFiltrado = pedidosFiltrados.reduce((acc, p) => acc + p.total, 0);
+  const abandonadosNoMes = pedidos.filter(
+    (p) => ehCarrinhoAbandonado(p) && (!mes || p.criadoEm.slice(0, 7) === mes)
+  ).length;
 
   async function handleStatusChange(id: string, status: string) {
     try {
@@ -70,8 +108,31 @@ export default function AdminOrders() {
     }
   }
 
+  async function handleSalvarRastreio(id: string) {
+    setSalvandoRastreio(id);
+    try {
+      await adminUpdateOrderTracking(id, rastreios[id] ?? "");
+      reload();
+    } catch (err: any) {
+      alert(err.message ?? "Erro ao salvar código de rastreio.");
+    } finally {
+      setSalvandoRastreio(null);
+    }
+  }
+
   function toggleExpandido(id: string) {
     setExpandidos((e) => ({ ...e, [id]: !e[id] }));
+  }
+
+  function handleExportarCsv() {
+    const csv = "﻿" + paraCsv(pedidosFiltrados);
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `pedidos${mes ? `-${mes}` : ""}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
   }
 
   async function handleApagarTudo() {
@@ -95,9 +156,22 @@ export default function AdminOrders() {
 
   return (
     <div>
-      <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
+      <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
         <h1 className="font-display text-2xl sm:text-3xl">Pedidos</h1>
         <div className="flex flex-wrap items-end gap-3">
+          <label className="flex flex-col gap-1.5 text-sm">
+            <span className="font-medium text-charcoal/80">Buscar</span>
+            <div className="relative">
+              <FiSearch size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-charcoal/40" />
+              <input
+                type="text"
+                value={busca}
+                onChange={(e) => setBusca(e.target.value)}
+                placeholder="Nome ou número do pedido"
+                className="input pl-8"
+              />
+            </div>
+          </label>
           <label className="flex flex-col gap-1.5 text-sm">
             <span className="font-medium text-charcoal/80">Filtrar por mês</span>
             <div className="flex gap-2">
@@ -119,6 +193,15 @@ export default function AdminOrders() {
               )}
             </div>
           </label>
+          {pedidosFiltrados.length > 0 && (
+            <button
+              type="button"
+              onClick={handleExportarCsv}
+              className="flex items-center gap-1.5 rounded-full border border-sand px-4 py-2.5 text-sm font-medium hover:bg-wood-100"
+            >
+              <FiDownload size={14} /> Exportar CSV
+            </button>
+          )}
           {pedidos.length > 0 && (
             <button
               type="button"
@@ -133,6 +216,18 @@ export default function AdminOrders() {
       </div>
 
       {error && <p className="mb-4 text-sm text-offer">{error}</p>}
+
+      {abandonadosNoMes > 0 && (
+        <label className="mb-4 flex w-fit cursor-pointer items-center gap-2 rounded-xl bg-wood-50 px-3 py-2 text-sm">
+          <input
+            type="checkbox"
+            checked={soAbandonados}
+            onChange={(e) => setSoAbandonados(e.target.checked)}
+            className="h-4 w-4 accent-wood-700"
+          />
+          Mostrar só carrinhos abandonados ({abandonadosNoMes})
+        </label>
+      )}
 
       {!loading && (
         <p className="mb-4 text-sm text-charcoal/60">
@@ -180,6 +275,11 @@ export default function AdminOrders() {
                       {p.formaPagamento === "manual" && (
                         <span className="ml-2 rounded-full bg-wood-100 px-2 py-0.5 text-xs font-semibold text-wood-700">
                           Venda balcão
+                        </span>
+                      )}
+                      {ehCarrinhoAbandonado(p) && (
+                        <span className="ml-2 rounded-full bg-charcoal/10 px-2 py-0.5 text-xs font-semibold text-charcoal/70">
+                          Carrinho abandonado
                         </span>
                       )}
                     </p>
@@ -254,6 +354,30 @@ export default function AdminOrders() {
                       {p.transactionNsu && <span>Transação: {p.transactionNsu}</span>}
                       {p.valorPago != null && <span>Valor pago: {formatCurrency(p.valorPago)}</span>}
                       {p.pagoEm && <span>Pago em: {new Date(p.pagoEm).toLocaleString("pt-BR")}</span>}
+                    </div>
+                  )}
+
+                  {(p.status === "confirmado" || p.status === "enviado" || p.status === "entregue") && (
+                    <div className="mt-3 flex flex-wrap items-end gap-2">
+                      <label className="flex flex-1 flex-col gap-1.5 text-sm">
+                        <span className="flex items-center gap-1.5 font-medium text-charcoal/80">
+                          <FiTruck size={14} /> Código de rastreio (Correios)
+                        </span>
+                        <input
+                          value={rastreios[p.id] ?? p.codigoRastreio ?? ""}
+                          onChange={(e) => setRastreios((r) => ({ ...r, [p.id]: e.target.value }))}
+                          placeholder="Ex: BR123456789BR"
+                          className="input"
+                        />
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => handleSalvarRastreio(p.id)}
+                        disabled={salvandoRastreio === p.id}
+                        className="rounded-full border border-sand px-4 py-2.5 text-sm font-medium hover:bg-wood-100 disabled:opacity-50"
+                      >
+                        {salvandoRastreio === p.id ? "Salvando..." : "Salvar"}
+                      </button>
                     </div>
                   )}
 

@@ -52,6 +52,12 @@ alter table produtos add column if not exists altura numeric(10, 2);
 alter table produtos add column if not exists largura numeric(10, 2);
 alter table produtos add column if not exists comprimento numeric(10, 2);
 
+-- Avaliação simples (definida pelo admin, sem sistema de review de
+-- clientes): média de 0 a 5 estrelas e quantas avaliações formam essa
+-- média. Quantidade 0 = ainda sem avaliação, não mostra nada no site.
+alter table produtos add column if not exists avaliacao_media numeric(2, 1) not null default 0;
+alter table produtos add column if not exists avaliacao_quantidade integer not null default 0;
+
 -- Variações (cor e/ou tamanho) com preço, estoque e fotos próprios
 -- (opcional). Um produto sem linhas aqui continua usando preço/estoque/
 -- fotos da tabela "produtos" normalmente — variações só entram em jogo
@@ -373,6 +379,20 @@ alter table pedidos add column if not exists invoice_slug text;
 alter table pedidos add column if not exists valor_pago numeric(10, 2);
 alter table pedidos add column if not exists pago_em timestamptz;
 alter table pedidos add column if not exists expira_em timestamptz;
+alter table pedidos add column if not exists codigo_rastreio text;
+
+-- Tempo real: o painel admin escuta pedidos novos sem precisar dar refresh.
+-- A tabela já é protegida por RLS (pedidos_admin_all), então só quem estiver
+-- autenticado como admin recebe os eventos.
+do $$
+begin
+  if not exists (
+    select 1 from pg_publication_tables
+    where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'pedidos'
+  ) then
+    alter publication supabase_realtime add table pedidos;
+  end if;
+end $$;
 
 -- Pedidos antigos (de antes desta coluna existir) ganham um order_nsu
 -- derivado do id, só para nunca ficar duplicado/vazio à toa.
@@ -666,12 +686,12 @@ grant execute on function confirmar_pagamento_pedido(text, text, text, numeric) 
 -- mínimo — o order_nsu é imprevisível (uuid sem hífen), então funciona
 -- como token: quem não fez o pedido não descobre o total de ninguém.
 create or replace function status_pedido_publico(p_order_nsu text)
-returns table (status text, numero integer, total numeric)
+returns table (status text, numero integer, total numeric, codigo_rastreio text)
 language sql
 security definer
 set search_path = public
 as $$
-  select p.status, p.numero, p.total
+  select p.status, p.numero, p.total, p.codigo_rastreio
   from pedidos p
   where p.order_nsu = p_order_nsu;
 $$;

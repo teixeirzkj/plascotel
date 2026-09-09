@@ -7,7 +7,11 @@ import { formatCurrency, discountPercent } from "../lib/format";
 import { useCartStore } from "../store/cart";
 import { imagensDaVariante } from "../lib/productPricing";
 import { WhatsAppButton } from "../components/WhatsAppButton";
+import { StarRating } from "../components/StarRating";
+import { ProductCard } from "../components/ProductCard";
 import { STORE_NAME } from "../config/store";
+
+const ESTOQUE_BAIXO_LIMITE = 3;
 
 export default function ProductDetail() {
   const { slug } = useParams();
@@ -24,6 +28,8 @@ export default function ProductDetail() {
   const [corSelecionada, setCorSelecionada] = useState(product?.variantes?.[0]?.cor ?? "");
   const [tamanhoSelecionado, setTamanhoSelecionado] = useState(product?.variantes?.[0]?.tamanho ?? "");
   const [quantidade, setQuantidade] = useState(1);
+  const [zoomAtivo, setZoomAtivo] = useState(false);
+  const [zoomPos, setZoomPos] = useState({ x: 50, y: 50 });
   const addItem = useCartStore((s) => s.addItem);
 
   // Cores únicas oferecidas pelo produto (na ordem cadastrada). Os tamanhos
@@ -125,7 +131,20 @@ export default function ProductDetail() {
   const temPromo = variante ? variante.precoPromocional !== null : product.precoPromocional !== null;
   const estoqueAtual = variante ? variante.estoque : product.estoque;
   const disponivel = estoqueAtual > 0;
+  const estoqueBaixo = disponivel && estoqueAtual <= ESTOQUE_BAIXO_LIMITE;
   const imagensAtuais = imagensDaVariante(product, variante);
+
+  const relacionados = products
+    .filter((p) => p.id !== product.id && p.categoriaId === product.categoriaId)
+    .slice(0, 4);
+
+  function handleZoomMove(e: React.MouseEvent<HTMLDivElement>) {
+    const rect = e.currentTarget.getBoundingClientRect();
+    setZoomPos({
+      x: ((e.clientX - rect.left) / rect.width) * 100,
+      y: ((e.clientY - rect.top) / rect.height) * 100,
+    });
+  }
 
   return (
     <section className="mx-auto max-w-7xl px-4 py-5 sm:px-6 sm:py-10 md:px-10 md:py-14">
@@ -135,12 +154,19 @@ export default function ProductDetail() {
             key={activeImage}
             initial={{ opacity: 0.4 }}
             animate={{ opacity: 1 }}
-            className="aspect-[5/4] overflow-hidden rounded-2xl bg-wood-50 sm:aspect-square"
+            onMouseMove={handleZoomMove}
+            onMouseEnter={() => setZoomAtivo(true)}
+            onMouseLeave={() => setZoomAtivo(false)}
+            className="aspect-[5/4] cursor-zoom-in overflow-hidden rounded-2xl bg-wood-50 sm:aspect-square"
           >
             <img
               src={imagensAtuais[activeImage] ?? imagensAtuais[0]}
               alt={product.nome}
-              className="h-full w-full object-cover transition-transform duration-500 hover:scale-105"
+              style={{
+                transformOrigin: `${zoomPos.x}% ${zoomPos.y}%`,
+                transform: zoomAtivo ? "scale(2)" : "scale(1)",
+              }}
+              className="h-full w-full object-cover transition-transform duration-150 ease-out"
             />
           </motion.div>
           {imagensAtuais.length > 1 && (
@@ -169,6 +195,11 @@ export default function ProductDetail() {
           <h1 className="mt-2 font-display text-2xl leading-snug sm:text-3xl md:text-4xl">
             {product.nome}
           </h1>
+          {(product.avaliacaoQuantidade ?? 0) > 0 && (
+            <div className="mt-2">
+              <StarRating media={product.avaliacaoMedia} quantidade={product.avaliacaoQuantidade} size={16} />
+            </div>
+          )}
 
           <div className="mt-5 flex flex-col gap-1 sm:mt-6">
             {temPromo && (
@@ -283,8 +314,16 @@ export default function ProductDetail() {
                   <FiPlus size={13} />
                 </button>
               </div>
-              <span className="text-xs text-charcoal/60 sm:text-sm">
-                {disponivel ? `${estoqueAtual} em estoque` : "Fora de estoque"}
+              <span
+                className={`text-xs sm:text-sm ${
+                  estoqueBaixo ? "font-semibold text-offer" : "text-charcoal/60"
+                }`}
+              >
+                {!disponivel
+                  ? "Fora de estoque"
+                  : estoqueBaixo
+                  ? `Últimas ${estoqueAtual} unidades!`
+                  : `${estoqueAtual} em estoque`}
               </span>
             </div>
           </div>
@@ -342,6 +381,17 @@ export default function ProductDetail() {
           </div>
         </div>
       </div>
+
+      {relacionados.length > 0 && (
+        <div className="mt-12 sm:mt-20">
+          <h2 className="mb-5 font-display text-xl sm:text-2xl">Você também pode gostar</h2>
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 sm:gap-6">
+            {relacionados.map((p) => (
+              <ProductCard key={p.id} product={p} />
+            ))}
+          </div>
+        </div>
+      )}
     </section>
   );
 }

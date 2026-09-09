@@ -59,6 +59,8 @@ function mapProductRow(row: any): Product {
     altura: numOrUndef(row.altura),
     largura: numOrUndef(row.largura),
     comprimento: numOrUndef(row.comprimento),
+    avaliacaoMedia: row.avaliacao_media != null ? Number(row.avaliacao_media) : 0,
+    avaliacaoQuantidade: row.avaliacao_quantidade ?? 0,
     variantes: ((row.produto_variantes ?? []) as any[])
       .slice()
       .sort((a, b) => (a.ordem ?? 0) - (b.ordem ?? 0))

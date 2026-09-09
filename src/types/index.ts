@@ -54,6 +54,9 @@ export interface Product {
   comprimento?: number;
   /** Se não vazio, cada cor tem seu próprio preço/estoque/fotos. */
   variantes?: ProductVariant[];
+  /** Avaliação simples (definida pelo admin, 0 a 5). Sem avaliações = não exibe nada. */
+  avaliacaoMedia?: number;
+  avaliacaoQuantidade?: number;
 }
 
 export interface CartItem {

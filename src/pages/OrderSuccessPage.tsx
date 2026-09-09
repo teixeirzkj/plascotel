@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Navigate, Link, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { FaWhatsapp } from "react-icons/fa";
-import { FiLoader, FiCheckCircle, FiXCircle, FiAlertTriangle } from "react-icons/fi";
+import { FiLoader, FiCheckCircle, FiXCircle, FiAlertTriangle, FiTruck } from "react-icons/fi";
 import { useLastOrderStore } from "../store/lastOrder";
 import { formatCurrency } from "../lib/format";
 import { buildWhatsAppLink, STORE_NAME } from "../config/store";
@@ -15,6 +15,7 @@ interface StatusPublico {
   status: string;
   numero: number;
   total: number;
+  codigoRastreio: string | null;
 }
 
 /**
@@ -48,7 +49,12 @@ export default function OrderSuccessPage() {
         if (cancelado) return;
         const linha = Array.isArray(data) ? data[0] : data;
         if (!error && linha) {
-          setStatusRemoto({ status: linha.status, numero: linha.numero, total: Number(linha.total) });
+          setStatusRemoto({
+            status: linha.status,
+            numero: linha.numero,
+            total: Number(linha.total),
+            codigoRastreio: linha.codigo_rastreio,
+          });
         } else if (!error) {
           setNaoEncontrado(true);
         }
@@ -69,6 +75,7 @@ export default function OrderSuccessPage() {
   const status = statusRemoto?.status ?? (orderNsu ? null : "novo");
   const numero = statusRemoto?.numero ?? order?.numero;
   const total = statusRemoto?.total ?? order?.total ?? 0;
+  const codigoRastreio = statusRemoto?.codigoRastreio ?? null;
 
   const numeroExibido = numero ?? "?";
   const mensagem = order
@@ -83,6 +90,7 @@ Endereço de entrega: ${order.cliente.rua}, ${order.cliente.numero} - ${order.cl
         numero={numero}
         esgotado={tentativas >= TENTATIVAS_MAX}
         naoEncontrado={naoEncontrado && !statusRemoto}
+        codigoRastreio={codigoRastreio}
       />
 
       {order && (
@@ -140,11 +148,13 @@ function StatusHeader({
   numero,
   esgotado,
   naoEncontrado,
+  codigoRastreio,
 }: {
   status: string | null;
   numero?: number;
   esgotado: boolean;
   naoEncontrado: boolean;
+  codigoRastreio: string | null;
 }) {
   const anim = {
     initial: { opacity: 0, scale: 0.9 },
@@ -207,13 +217,21 @@ function StatusHeader({
   return (
     <motion.div {...anim}>
       <FiCheckCircle className="mx-auto mb-3 text-green-600" size={40} />
-      <h1 className="font-display text-2xl sm:text-3xl">Pedido realizado com sucesso! 🎉</h1>
+      <h1 className="font-display text-2xl sm:text-3xl">
+        {status === "enviado" ? "Seu pedido está a caminho!" : status === "entregue" ? "Pedido entregue!" : "Pedido realizado com sucesso! 🎉"}
+      </h1>
       <p className="mt-2 text-charcoal/60">
         Pedido #{numero}
-        {status === "novo"
-          ? " — confirme o envio pelo WhatsApp para agilizarmos a entrega."
-          : " — pagamento confirmado. Já estamos preparando tudo!"}
+        {status === "novo" && " — confirme o envio pelo WhatsApp para agilizarmos a entrega."}
+        {status === "confirmado" && " — pagamento confirmado. Já estamos preparando tudo!"}
+        {status === "enviado" && " — já saiu para entrega."}
+        {status === "entregue" && " — esperamos que você tenha gostado!"}
       </p>
+      {codigoRastreio && (status === "enviado" || status === "entregue") && (
+        <p className="mx-auto mt-3 flex w-fit items-center gap-2 rounded-full bg-wood-100 px-4 py-2 text-sm font-medium text-wood-700">
+          <FiTruck size={16} /> Rastreio: {codigoRastreio}
+        </p>
+      )}
     </motion.div>
   );
 }

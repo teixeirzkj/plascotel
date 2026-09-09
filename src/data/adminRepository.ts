@@ -34,6 +34,8 @@ function toProductRow(p: Partial<Product>) {
     altura: p.altura ?? null,
     largura: p.largura ?? null,
     comprimento: p.comprimento ?? null,
+    avaliacao_media: p.avaliacaoMedia ?? 0,
+    avaliacao_quantidade: p.avaliacaoQuantidade ?? 0,
   };
 }
 
@@ -181,6 +183,7 @@ export interface AdminOrder {
   transactionNsu: string | null;
   valorPago: number | null;
   pagoEm: string | null;
+  codigoRastreio: string | null;
   cliente: Record<string, string>;
   criadoEm: string;
   itens: { nome: string; quantidade: number; precoUnitario: number }[];
@@ -191,7 +194,7 @@ export async function fetchAdminOrders(): Promise<AdminOrder[]> {
   const { data, error } = await db
     .from("pedidos")
     .select(
-      "*, transaction_nsu, valor_pago, pago_em, order_nsu, pedido_itens(nome, quantidade, preco_unitario)"
+      "*, transaction_nsu, valor_pago, pago_em, order_nsu, codigo_rastreio, pedido_itens(nome, quantidade, preco_unitario)"
     )
     .order("criado_em", { ascending: false });
   if (error) throw error;
@@ -207,6 +210,7 @@ export async function fetchAdminOrders(): Promise<AdminOrder[]> {
     transactionNsu: row.transaction_nsu,
     valorPago: row.valor_pago != null ? Number(row.valor_pago) : null,
     pagoEm: row.pago_em,
+    codigoRastreio: row.codigo_rastreio,
     cliente: row.cliente,
     criadoEm: row.criado_em,
     itens: (row.pedido_itens ?? []).map((i: any) => ({
@@ -215,6 +219,16 @@ export async function fetchAdminOrders(): Promise<AdminOrder[]> {
       precoUnitario: Number(i.preco_unitario),
     })),
   }));
+}
+
+/** Salva/atualiza o código de rastreio dos Correios de um pedido. */
+export async function adminUpdateOrderTracking(id: string, codigoRastreio: string) {
+  const db = requireSupabase();
+  const { error } = await db
+    .from("pedidos")
+    .update({ codigo_rastreio: codigoRastreio || null })
+    .eq("id", id);
+  if (error) throw error;
 }
 
 /**

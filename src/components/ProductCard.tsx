@@ -6,13 +6,17 @@ import type { Product } from "../types";
 import { useCatalogStore } from "../store/catalog";
 import { formatCurrency, discountPercent } from "../lib/format";
 import { useCartStore } from "../store/cart";
+import { StarRating } from "./StarRating";
 import {
   precoExibicao,
   precoOriginalExibicao,
   temPromocaoExibicao,
   precoVariaPorCor,
   imagemPrincipal,
+  estoqueExibicao,
 } from "../lib/productPricing";
+
+const ESTOQUE_BAIXO_LIMITE = 3;
 
 export function ProductCard({ product }: { product: Product }) {
   const [hover, setHover] = useState(false);
@@ -25,6 +29,8 @@ export function ProductCard({ product }: { product: Product }) {
   const preco = precoExibicao(product);
   const precoOriginal = precoOriginalExibicao(product);
   const variaPorCor = precoVariaPorCor(product);
+  const estoque = estoqueExibicao(product);
+  const estoqueBaixo = estoque > 0 && estoque <= ESTOQUE_BAIXO_LIMITE;
 
   return (
     <motion.div
@@ -53,6 +59,11 @@ export function ProductCard({ product }: { product: Product }) {
           {product.novo && (
             <span className="rounded-full bg-charcoal px-2.5 py-1 text-xs font-bold text-white">
               NOVO
+            </span>
+          )}
+          {estoqueBaixo && (
+            <span className="rounded-full bg-offer px-2.5 py-1 text-xs font-bold text-white">
+              ÚLTIMAS {estoque} UN.
             </span>
           )}
         </div>
@@ -85,6 +96,11 @@ export function ProductCard({ product }: { product: Product }) {
         <p className="mt-1 line-clamp-2 text-sm text-charcoal/60">
           {product.descricaoCurta}
         </p>
+        {(product.avaliacaoQuantidade ?? 0) > 0 && (
+          <div className="mt-1.5">
+            <StarRating media={product.avaliacaoMedia} quantidade={product.avaliacaoQuantidade} />
+          </div>
+        )}
         <div className="mt-2 flex flex-col gap-0.5 sm:mt-3">
           {temPromo && (
             <span className="text-xs text-charcoal/40 line-through sm:text-sm">

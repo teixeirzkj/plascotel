@@ -58,6 +58,8 @@ const emptyForm: FormState = {
   altura: undefined,
   largura: undefined,
   comprimento: undefined,
+  avaliacaoMedia: 0,
+  avaliacaoQuantidade: 0,
 };
 
 function slugify(text: string) {
@@ -712,6 +714,35 @@ export default function AdminProductForm() {
               />
             </Field>
           </div>
+        </div>
+
+        <div>
+          <p className="mb-1 text-sm font-medium text-charcoal/80">
+            Avaliação (opcional, definida por você — não é um sistema de review de clientes)
+          </p>
+          <div className="grid grid-cols-2 gap-4 sm:max-w-xs">
+            <Field label="Média (0 a 5)">
+              <input
+                type="number"
+                step="0.1"
+                min={0}
+                max={5}
+                value={form.avaliacaoMedia ?? 0}
+                onChange={(e) => update("avaliacaoMedia", Number(e.target.value))}
+                className="input"
+              />
+            </Field>
+            <Field label="Quantidade de avaliações">
+              <input
+                type="number"
+                min={0}
+                value={form.avaliacaoQuantidade ?? 0}
+                onChange={(e) => update("avaliacaoQuantidade", Number(e.target.value))}
+                className="input"
+              />
+            </Field>
+          </div>
+          <p className="mt-1 text-xs text-charcoal/50">Deixe quantidade em 0 pra não exibir estrelas no site.</p>
         </div>
 
         <div className="flex flex-wrap gap-5">
