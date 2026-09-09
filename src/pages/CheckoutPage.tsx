@@ -355,11 +355,7 @@ export default function CheckoutPage() {
             disabled={loading}
             className="mt-5 w-full rounded-full bg-charcoal py-3.5 font-semibold text-white transition hover:bg-charcoal-800 disabled:opacity-60"
           >
-            {loading
-              ? "Processando..."
-              : pagamento === "infinitepay"
-              ? "Pagar com InfinitePay"
-              : "Confirmar pedido"}
+            {loading ? "Processando..." : "Confirmar pedido"}
           </button>
         </div>
       </form>
