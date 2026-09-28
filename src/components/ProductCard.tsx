@@ -43,7 +43,10 @@ export function ProductCard({ product }: { product: Product }) {
       onMouseLeave={() => setHover(false)}
       className="group relative flex flex-col overflow-hidden rounded-2xl bg-white shadow-card"
     >
-      <Link to={`/produto/${product.slug}`} className="relative block aspect-[4/5] overflow-hidden bg-wood-50">
+      <Link
+        to={`/produto/${product.slug}`}
+        className="relative block aspect-square overflow-hidden bg-wood-50 sm:aspect-[4/5]"
+      >
         <img
           src={hover && product.imagens[1] ? product.imagens[1] : imagemPrincipal(product)}
           alt={product.nome}
@@ -77,7 +80,7 @@ export function ProductCard({ product }: { product: Product }) {
             }
           }}
           aria-label={temVariantes ? "Escolher cor" : "Adicionar ao carrinho"}
-          className="absolute bottom-3 right-3 flex h-10 w-10 translate-y-2 items-center justify-center rounded-full bg-charcoal text-white opacity-0 shadow-soft transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100"
+          className="absolute bottom-3 right-3 flex h-11 w-11 items-center justify-center rounded-full bg-charcoal text-white opacity-100 shadow-soft transition-all duration-300 sm:translate-y-2 sm:opacity-0 sm:group-hover:translate-y-0 sm:group-hover:opacity-100"
         >
           <FiShoppingBag size={17} />
         </button>

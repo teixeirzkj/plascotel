@@ -122,7 +122,7 @@ export default function ProductsPage({
               <p className="mb-4 text-sm text-charcoal/50">
                 {filtered.length} produto(s)
               </p>
-              <div className="grid grid-cols-2 gap-4 sm:gap-6 md:grid-cols-3 lg:grid-cols-3">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 md:grid-cols-3 lg:grid-cols-3">
                 {visiveisAgora.map((p) => (
                   <ProductCard key={p.id} product={p} />
                 ))}

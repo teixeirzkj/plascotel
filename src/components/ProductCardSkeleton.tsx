@@ -16,7 +16,7 @@ export function ProductCardSkeleton() {
 /** Grade de skeletons — mesmo layout de grid usado na listagem de produtos. */
 export function ProductGridSkeleton({ quantidade = 6 }: { quantidade?: number }) {
   return (
-    <div className="grid grid-cols-2 gap-4 sm:gap-6 md:grid-cols-3 lg:grid-cols-3">
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 md:grid-cols-3 lg:grid-cols-3">
       {Array.from({ length: quantidade }, (_, i) => (
         <ProductCardSkeleton key={i} />
       ))}
