@@ -1,8 +1,10 @@
 import { WhyChooseUs } from "../components/WhyChooseUs";
 import { Benefits } from "../components/Benefits";
-import { STORE_NAME } from "../config/store";
+import { useSiteContentStore } from "../store/siteContent";
 
 export default function AboutPage() {
+  const sobre = useSiteContentStore((s) => s.conteudo.sobre);
+
   return (
     <section>
       <div className="mx-auto max-w-4xl px-6 py-14 text-center md:px-10">
@@ -10,16 +12,9 @@ export default function AboutPage() {
           Sobre nós
         </span>
         <h1 className="mt-2 font-display text-2xl sm:text-3xl md:text-4xl">
-          A {STORE_NAME} é feita de casa e histórias
+          {sobre.titulo}
         </h1>
-        <p className="mt-4 text-charcoal/70">
-          Nascemos com o propósito de levar tudo o que uma casa precisa —
-          cama, mesa e banho, pratos, perfumaria e decoração e muito mais —
-          com qualidade, design moderno e atendimento próximo para cada
-          cliente.
-          Selecionamos cada peça pensando em conforto, durabilidade e
-          estilo, para que sua casa reflita quem você é.
-        </p>
+        <p className="mt-4 whitespace-pre-line text-charcoal/70">{sobre.texto}</p>
       </div>
       <WhyChooseUs />
       <Benefits />

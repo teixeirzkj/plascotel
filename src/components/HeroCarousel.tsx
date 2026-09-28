@@ -2,22 +2,23 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { FiChevronLeft, FiChevronRight } from "react-icons/fi";
-import { heroSlides } from "../data/heroSlides";
+import { useSiteContentStore } from "../store/siteContent";
 
 const AUTOPLAY_MS = 6000;
 
 export function HeroCarousel() {
+  const heroSlides = useSiteContentStore((s) => s.conteudo.heroSlides);
   const [index, setIndex] = useState(0);
   const [paused, setPaused] = useState(false);
   const touchStartX = useRef<number | null>(null);
 
   const next = useCallback(
     () => setIndex((i) => (i + 1) % heroSlides.length),
-    []
+    [heroSlides.length]
   );
   const prev = useCallback(
     () => setIndex((i) => (i - 1 + heroSlides.length) % heroSlides.length),
-    []
+    [heroSlides.length]
   );
 
   useEffect(() => {
@@ -26,7 +27,11 @@ export function HeroCarousel() {
     return () => clearInterval(id);
   }, [next, paused]);
 
-  const slide = heroSlides[index];
+  // Se o conteúdo carregar do banco com menos slides do que o índice atual
+  // (ex: admin removeu slides enquanto a página já estava aberta), volta pro
+  // primeiro em vez de tentar renderizar um slide que não existe mais.
+  const slide = heroSlides[index] ?? heroSlides[0];
+  if (!slide) return null;
 
   return (
     <section

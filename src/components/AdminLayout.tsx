@@ -12,6 +12,7 @@ import {
   FiMenu,
   FiX,
   FiBell,
+  FiLayout,
 } from "react-icons/fi";
 import { useAuthStore } from "../store/auth";
 import { STORE_NAME } from "../config/store";
@@ -50,6 +51,7 @@ const links = [
   { to: "/admin/categorias", label: "Categorias", icon: FiTag },
   { to: "/admin/pedidos", label: "Pedidos", icon: FiShoppingCart },
   { to: "/admin/venda-manual", label: "Venda manual", icon: FiPlusCircle },
+  { to: "/admin/secoes", label: "Seções", icon: FiLayout },
 ];
 
 export function AdminLayout() {

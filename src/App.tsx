@@ -29,6 +29,7 @@ const AdminProductForm = lazy(() => import("./pages/admin/AdminProductForm"));
 const AdminCategories = lazy(() => import("./pages/admin/AdminCategories"));
 const AdminOrders = lazy(() => import("./pages/admin/AdminOrders"));
 const AdminVendaManual = lazy(() => import("./pages/admin/AdminVendaManual"));
+const AdminSecoes = lazy(() => import("./pages/admin/AdminSecoes"));
 
 function AdminFallback() {
   return <p className="p-10 text-center text-charcoal/50">Carregando...</p>;
@@ -172,6 +173,14 @@ export default function App() {
             element={
               <Suspense fallback={<AdminFallback />}>
                 <AdminVendaManual />
+              </Suspense>
+            }
+          />
+          <Route
+            path="secoes"
+            element={
+              <Suspense fallback={<AdminFallback />}>
+                <AdminSecoes />
               </Suspense>
             }
           />

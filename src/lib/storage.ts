@@ -46,7 +46,7 @@ async function comprimirImagem(file: File): Promise<Blob> {
  * pública para salvar no produto/categoria. Requer o bucket "imagens"
  * criado (ver supabase/storage.sql) e um usuário admin logado.
  */
-export async function uploadImage(file: File, pasta: "produtos" | "categorias") {
+export async function uploadImage(file: File, pasta: "produtos" | "categorias" | "banner") {
   if (!supabase) {
     throw new Error("Supabase não está configurado.");
   }

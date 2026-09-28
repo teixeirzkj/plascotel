@@ -5,7 +5,7 @@ import { uploadImage } from "../../lib/storage";
 interface ImageUploadFieldProps {
   value: string;
   onChange: (url: string) => void;
-  pasta: "produtos" | "categorias";
+  pasta: "produtos" | "categorias" | "banner";
 }
 
 /** Campo de upload de uma única imagem (usado para a foto de categoria). */

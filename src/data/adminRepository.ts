@@ -303,3 +303,15 @@ export async function createManualSale(
   if (error) throw error;
   return data as { id: string; numero: number; criado_em: string };
 }
+
+/**
+ * Salva uma seção do conteúdo do site (banner, "sobre", rodapé etc — ver
+ * src/data/siteContent.ts para as chaves e o formato de cada valor).
+ */
+export async function adminSalvarConteudo(chave: string, valor: unknown) {
+  const db = requireSupabase();
+  const { error } = await db
+    .from("conteudo_site")
+    .upsert({ chave, valor, atualizado_em: new Date().toISOString() });
+  if (error) throw error;
+}

@@ -375,6 +375,31 @@ create policy "pedido_itens_admin_all" on pedido_itens
   with check (auth.role() = 'authenticated');
 
 -- ---------------------------------------------------------
+-- Conteúdo do site (banner, "sobre", rodapé etc) — editável no admin em
+-- "Seções", sem precisar mexer em código. Guardado como chave/valor (jsonb)
+-- pra não precisar alterar o schema toda vez que uma seção nova for
+-- editável; ver src/data/siteContent.ts para o formato de cada chave e os
+-- valores padrão usados enquanto uma chave ainda não foi configurada.
+-- ---------------------------------------------------------
+
+create table if not exists conteudo_site (
+  chave text primary key,
+  valor jsonb not null,
+  atualizado_em timestamptz not null default now()
+);
+
+alter table conteudo_site enable row level security;
+
+drop policy if exists "conteudo_site_select_publico" on conteudo_site;
+create policy "conteudo_site_select_publico" on conteudo_site
+  for select using (true);
+
+drop policy if exists "conteudo_site_admin_all" on conteudo_site;
+create policy "conteudo_site_admin_all" on conteudo_site
+  for all using (auth.role() = 'authenticated')
+  with check (auth.role() = 'authenticated');
+
+-- ---------------------------------------------------------
 -- Pagamento verificado (InfinitePay) — preço e link decididos no
 -- servidor, nunca no navegador. Ver api/criar-pagamento.ts e
 -- api/infinitepay-webhook.ts. Bloco idempotente, pode rodar de novo.

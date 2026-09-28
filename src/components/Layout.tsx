@@ -6,12 +6,14 @@ import { Footer } from "./Footer";
 import { CartDrawer } from "./CartDrawer";
 import { WhatsAppFloatButton } from "./WhatsAppFloatButton";
 import { useCatalogStore } from "../store/catalog";
+import { useSiteContentStore } from "../store/siteContent";
 
 export function Layout() {
   const location = useLocation();
 
   useEffect(() => {
     useCatalogStore.getState().load();
+    useSiteContentStore.getState().load();
   }, []);
 
   useEffect(() => {

@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { FiInstagram } from "react-icons/fi";
 import { FaWhatsapp } from "react-icons/fa";
 import { Logo } from "./Logo";
+import { useSiteContentStore } from "../store/siteContent";
 import {
   buildWhatsAppLink,
   INSTAGRAM_URL,
@@ -12,15 +13,14 @@ import {
 } from "../config/store";
 
 export function Footer() {
+  const footer = useSiteContentStore((s) => s.conteudo.footer);
+
   return (
     <footer className="bg-charcoal text-white">
       <div className="mx-auto grid max-w-7xl grid-cols-2 gap-6 px-6 py-8 sm:grid-cols-3 md:px-10 md:py-12 lg:grid-cols-3">
         <div className="col-span-2 sm:col-span-1">
           <Logo dark />
-          <p className="mt-3 text-xs text-white/60 md:text-sm">
-            Cama, mesa, banho, pratos e decoração que unem design, conforto
-            e qualidade para transformar a sua casa.
-          </p>
+          <p className="mt-3 text-xs text-white/60 md:text-sm">{footer.descricao}</p>
         </div>
 
         <div>
