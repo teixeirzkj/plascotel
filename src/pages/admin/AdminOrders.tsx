@@ -8,6 +8,7 @@ import {
   type AdminOrder,
 } from "../../data/adminRepository";
 import { formatCurrency } from "../../lib/format";
+import { gerarComprovantePedido } from "../../lib/pdfComprovante";
 
 const statusOptions = [
   "aguardando_pagamento",
@@ -395,6 +396,14 @@ export default function AdminOrders() {
                     <span>Total</span>
                     <span>{formatCurrency(p.total)}</span>
                   </div>
+
+                  <button
+                    type="button"
+                    onClick={() => gerarComprovantePedido(p)}
+                    className="mt-3 flex w-fit items-center gap-1.5 rounded-full border border-sand px-4 py-2 text-sm font-medium hover:bg-wood-100"
+                  >
+                    <FiDownload size={14} /> Baixar comprovante (PDF)
+                  </button>
                 </div>
               )}
             </div>
