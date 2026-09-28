@@ -38,6 +38,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return;
   }
 
+  // Qualquer erro inesperado aqui dentro (ex: falha de rede momentânea com o
+  // Supabase) precisa terminar numa resposta JSON, nunca numa página de erro
+  // genérica da Vercel — o navegador sempre espera poder fazer response.json()
+  // nessa chamada (ver src/lib/checkout.ts).
+  try {
+    await processarPagamento(req, res);
+  } catch (err) {
+    console.error("criar-pagamento: erro inesperado", err);
+    if (!res.headersSent) {
+      res.status(500).json({ error: "Não foi possível concluir a compra. Tente novamente." });
+    }
+  }
+}
+
+async function processarPagamento(req: VercelRequest, res: VercelResponse) {
   const supabaseUrl = process.env.VITE_SUPABASE_URL;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!supabaseUrl || !serviceRoleKey) {

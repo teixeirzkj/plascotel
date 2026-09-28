@@ -41,11 +41,14 @@ export function ProductCard({ product }: { product: Product }) {
       whileHover={{ y: -6 }}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
-      className="group relative flex flex-col overflow-hidden rounded-2xl bg-white shadow-card"
+      // No celular é uma linha compacta (foto pequena à esquerda, texto à
+      // direita) pra caber vários produtos na tela, um embaixo do outro.
+      // A partir do tablet (sm:) volta a ser o card vertical normal.
+      className="group relative flex flex-row items-stretch gap-3 overflow-hidden rounded-2xl bg-white p-2.5 shadow-card sm:flex-col sm:gap-0 sm:p-0"
     >
       <Link
         to={`/produto/${product.slug}`}
-        className="relative block aspect-square overflow-hidden bg-wood-50 sm:aspect-[4/5]"
+        className="relative block aspect-square w-24 flex-none overflow-hidden rounded-xl bg-wood-50 sm:aspect-[4/5] sm:w-full sm:rounded-none"
       >
         <img
           src={hover && product.imagens[1] ? product.imagens[1] : imagemPrincipal(product)}
@@ -53,7 +56,7 @@ export function ProductCard({ product }: { product: Product }) {
           loading="lazy"
           className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.06]"
         />
-        <div className="absolute left-3 top-3 flex flex-col gap-1.5">
+        <div className="hidden gap-1.5 sm:absolute sm:left-3 sm:top-3 sm:flex sm:flex-col">
           {product.oferta && temPromo && (
             <span className="rounded-full bg-offer px-2.5 py-1 text-xs font-bold text-white">
               -{discountPercent(precoOriginal, preco)}% OFERTA
@@ -80,42 +83,40 @@ export function ProductCard({ product }: { product: Product }) {
             }
           }}
           aria-label={temVariantes ? "Escolher cor" : "Adicionar ao carrinho"}
-          className="absolute bottom-3 right-3 flex h-11 w-11 items-center justify-center rounded-full bg-charcoal text-white opacity-100 shadow-soft transition-all duration-300 sm:translate-y-2 sm:opacity-0 sm:group-hover:translate-y-0 sm:group-hover:opacity-100"
+          className="absolute bottom-3 right-3 hidden h-11 w-11 items-center justify-center rounded-full bg-charcoal text-white opacity-0 shadow-soft transition-all duration-300 sm:flex sm:translate-y-2 sm:group-hover:translate-y-0 sm:group-hover:opacity-100"
         >
           <FiShoppingBag size={17} />
         </button>
       </Link>
-      <div className="flex flex-1 flex-col p-4">
+      <Link to={`/produto/${product.slug}`} className="flex min-w-0 flex-1 flex-col justify-center py-0.5 sm:justify-start sm:p-4">
         {categoria && (
-          <span className="text-xs font-medium uppercase tracking-wide text-wood-500">
+          <span className="hidden text-xs font-medium uppercase tracking-wide text-wood-500 sm:block">
             {categoria.nome}
           </span>
         )}
-        <Link to={`/produto/${product.slug}`}>
-          <h3 className="mt-1 font-display text-lg leading-snug text-charcoal">
-            {product.nome}
-          </h3>
-        </Link>
-        <p className="mt-1 line-clamp-2 text-sm text-charcoal/60">
+        <h3 className="line-clamp-2 font-display text-sm leading-snug text-charcoal sm:mt-1 sm:text-lg">
+          {product.nome}
+        </h3>
+        <p className="mt-0.5 line-clamp-1 text-xs text-charcoal/60 sm:mt-1 sm:line-clamp-2 sm:text-sm">
           {product.descricaoCurta}
         </p>
         {(product.avaliacaoQuantidade ?? 0) > 0 && (
-          <div className="mt-1.5">
-            <StarRating media={product.avaliacaoMedia} quantidade={product.avaliacaoQuantidade} />
+          <div className="mt-1 sm:mt-1.5">
+            <StarRating media={product.avaliacaoMedia} quantidade={product.avaliacaoQuantidade} size={12} />
           </div>
         )}
-        <div className="mt-2 flex flex-col gap-0.5 sm:mt-3">
+        <div className="mt-1 flex flex-col gap-0.5 sm:mt-3">
           {temPromo && (
             <span className="text-xs text-charcoal/40 line-through sm:text-sm">
               {formatCurrency(precoOriginal)}
             </span>
           )}
-          <span className="font-display text-base font-semibold text-charcoal sm:text-xl">
+          <span className="font-display text-sm font-semibold text-charcoal sm:text-xl">
             {variaPorCor && "A partir de "}
             {formatCurrency(preco)}
           </span>
         </div>
-      </div>
+      </Link>
     </motion.div>
   );
 }
