@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { cotarFrete, limparCep, type ItemFrete } from "./_lib/frete";
+import { cotarFrete, limparCep, type ItemFrete } from "./_lib/frete.js";
 
 /**
  * Calcula o frete para EXIBIR opções ao cliente no checkout. O valor

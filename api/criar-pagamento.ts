@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { createClient } from "@supabase/supabase-js";
-import { cotarFrete, fretePadraoPara, limparCep, type ItemFrete } from "./_lib/frete";
+import { cotarFrete, fretePadraoPara, limparCep, type ItemFrete } from "./_lib/frete.js";
 
 /**
  * Cria o pedido E (se for InfinitePay) o link de pagamento — tudo decidido
