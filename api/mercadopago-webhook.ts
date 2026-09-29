@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { createClient } from "@supabase/supabase-js";
+import { createHmac, timingSafeEqual } from "node:crypto";
 import { consultarPagamento } from "./_lib/mercadoPago.js";
 
 /**
@@ -16,7 +17,34 @@ import { consultarPagamento } from "./_lib/mercadoPago.js";
  * Variáveis de ambiente necessárias (sem prefixo VITE_):
  *   SUPABASE_SERVICE_ROLE_KEY, MERCADOPAGO_ACCESS_TOKEN
  *   MERCADOPAGO_WEBHOOK_SECRET — obrigatória; exige ?t=SEGREDO na URL
+ *   MERCADOPAGO_SIGNATURE_SECRET — opcional; "Chave secreta" gerada pelo
+ *     próprio Mercado Pago na tela de configuração do webhook. Se definida,
+ *     valida o header x-signature (HMAC-SHA256) antes de aceitar a chamada.
  */
+
+/** https://www.mercadopago.com.br/developers/en/docs/your-integrations/notifications/webhooks */
+function assinaturaValida(req: VercelRequest, dataId: string, secret: string): boolean {
+  const xSignature = req.headers["x-signature"];
+  const xRequestId = req.headers["x-request-id"];
+  if (typeof xSignature !== "string" || typeof xRequestId !== "string") return false;
+
+  let ts: string | null = null;
+  let v1: string | null = null;
+  for (const parte of xSignature.split(",")) {
+    const [chave, valor] = parte.split("=").map((s) => s.trim());
+    if (chave === "ts") ts = valor;
+    if (chave === "v1") v1 = valor;
+  }
+  if (!ts || !v1) return false;
+
+  const manifest = `id:${dataId};request-id:${xRequestId};ts:${ts};`;
+  const hashCalculado = createHmac("sha256", secret).update(manifest).digest("hex");
+
+  const bufferCalculado = Buffer.from(hashCalculado, "hex");
+  const bufferRecebido = Buffer.from(v1, "hex");
+  if (bufferCalculado.length !== bufferRecebido.length) return false;
+  return timingSafeEqual(bufferCalculado, bufferRecebido);
+}
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const segredoEsperado = process.env.MERCADOPAGO_WEBHOOK_SECRET;
@@ -34,15 +62,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   // { type: "payment", data: { id } }) quanto na query string (IPN antigo,
   // ?type=payment&data.id=...) — aceita os dois formatos.
   const body = (req.body ?? {}) as { type?: string; data?: { id?: string | number } };
-  const paymentId =
-    body?.data?.id ??
+  const dataIdQuery =
     (typeof req.query["data.id"] === "string" ? req.query["data.id"] : null) ??
     (typeof req.query.id === "string" ? req.query.id : null);
+  const paymentId = body?.data?.id ?? dataIdQuery;
 
   if (!paymentId) {
     // Notificação de outro tipo (ex: "merchant_order") — nada a fazer.
     res.status(200).json({ ok: true, ignorado: "sem payment id" });
     return;
+  }
+
+  const assinaturaSecreta = process.env.MERCADOPAGO_SIGNATURE_SECRET;
+  if (assinaturaSecreta) {
+    const idParaAssinatura = dataIdQuery ?? String(paymentId);
+    if (!assinaturaValida(req, idParaAssinatura, assinaturaSecreta)) {
+      console.error("mercadopago-webhook: assinatura x-signature inválida");
+      res.status(401).json({ error: "assinatura inválida" });
+      return;
+    }
   }
 
   const supabaseUrl = process.env.VITE_SUPABASE_URL;
