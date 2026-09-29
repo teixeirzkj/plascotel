@@ -41,6 +41,7 @@ export default function CheckoutPage() {
   const [pedidoConcluido, setPedidoConcluido] = useState(false);
   const [buscandoEndereco, setBuscandoEndereco] = useState(false);
   const [calculandoFrete, setCalculandoFrete] = useState(false);
+  const [freteCalculado, setFreteCalculado] = useState(false);
   const [erroFrete, setErroFrete] = useState<string | null>(null);
   const [opcoesFrete, setOpcoesFrete] = useState<OpcaoFrete[]>([]);
   const [freteSelecionadoId, setFreteSelecionadoId] = useState<number | null>(null);
@@ -107,6 +108,7 @@ export default function CheckoutPage() {
       setErroFrete("Não foi possível calcular o frete agora. Usando frete padrão.");
     } finally {
       setCalculandoFrete(false);
+      setFreteCalculado(true);
     }
   }
 
@@ -353,7 +355,12 @@ export default function CheckoutPage() {
             <span>{formatCurrency(sub)}</span>
           </div>
 
-          {freteIntegradoDisponivel && opcoesFrete.length > 0 ? (
+          {!freteCalculado ? (
+            <div className="flex justify-between py-2 text-sm text-charcoal/70">
+              <span>Frete</span>
+              <span className="italic text-charcoal/50">A calcular</span>
+            </div>
+          ) : freteIntegradoDisponivel && opcoesFrete.length > 0 ? (
             <div className="flex flex-col gap-2 border-b border-sand py-3">
               <span className="text-sm text-charcoal/70">Frete</span>
               {opcoesFrete.map((o) => (
@@ -396,7 +403,7 @@ export default function CheckoutPage() {
 
           <div className="flex justify-between border-t border-sand pt-3 text-lg font-semibold">
             <span>Total</span>
-            <span>{formatCurrency(total)}</span>
+            <span>{freteCalculado ? formatCurrency(total) : `${formatCurrency(sub)} + frete`}</span>
           </div>
 
           {etapa === 1 ? (
