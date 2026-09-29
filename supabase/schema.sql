@@ -535,7 +535,7 @@ begin
       select coalesce(preco_promocional, preco), nome
       into v_preco, v_nome
       from produtos
-      where id = v_produto_id;
+      where produtos.id = v_produto_id;
 
       if v_preco is null then
         raise exception 'Produto % não encontrado.', v_produto_id;
@@ -587,18 +587,18 @@ begin
 
     if v_variante_id is not null then
       select estoque into v_estoque
-      from produto_variantes where id = v_variante_id for update;
+      from produto_variantes where produto_variantes.id = v_variante_id for update;
       if v_estoque < v_qtd then
         raise exception 'Estoque insuficiente para %.', v_item->>'nome';
       end if;
-      update produto_variantes set estoque = estoque - v_qtd where id = v_variante_id;
+      update produto_variantes set estoque = estoque - v_qtd where produto_variantes.id = v_variante_id;
     elsif v_produto_id is not null then
       select estoque into v_estoque
-      from produtos where id = v_produto_id for update;
+      from produtos where produtos.id = v_produto_id for update;
       if v_estoque < v_qtd then
         raise exception 'Estoque insuficiente para %.', v_item->>'nome';
       end if;
-      update produtos set estoque = estoque - v_qtd where id = v_produto_id;
+      update produtos set estoque = estoque - v_qtd where produtos.id = v_produto_id;
     end if;
 
     insert into pedido_itens (
