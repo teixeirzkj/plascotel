@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { trocarCodigoPorToken } from "./_lib/melhorEnvioAuth";
+import { trocarCodigoPorToken } from "./_lib/frete";
 
 /**
  * URL de redirecionamento cadastrada no aplicativo do Melhor Envio (Área
