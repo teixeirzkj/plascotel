@@ -20,13 +20,16 @@ interface RespostaFrete {
  */
 export async function calcularFrete(
   cepDestino: string,
-  itens: CartItem[]
+  itens: CartItem[],
+  destino?: { cidade?: string; estado?: string }
 ): Promise<RespostaFrete> {
   const response = await fetch("/api/frete", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       cepDestino,
+      cidadeDestino: destino?.cidade,
+      estadoDestino: destino?.estado,
       itens: itens.map((i) => ({
         peso: i.peso,
         altura: i.altura,

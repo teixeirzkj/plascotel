@@ -62,6 +62,12 @@ async function processarPagamento(req: VercelRequest, res: VercelResponse) {
   }
   const supabase = createClient(supabaseUrl, serviceRoleKey);
 
+  // Libera o estoque de pedidos abandonados (checkout aberto e nunca pago)
+  // antes de reservar estoque pra este pedido novo — sem isso, produtos com
+  // pouca unidade podiam ficar "presos" em pedidos vencidos até alguém abrir
+  // o painel admin.
+  await supabase.rpc("expirar_pedidos_pendentes");
+
   const body = (req.body ?? {}) as {
     itens?: ItemPedidoBody[];
     cliente?: ClienteBody;
@@ -176,7 +182,10 @@ async function processarPagamento(req: VercelRequest, res: VercelResponse) {
   const cepLimpo = limparCep(body.cepDestino || cliente.cep);
   if (cepLimpo.length === 8) {
     try {
-      const resultado = await cotarFrete(cepLimpo, itensFrete);
+      const resultado = await cotarFrete(cepLimpo, itensFrete, {
+        cidade: cliente.cidade,
+        estado: cliente.estado,
+      });
       if (resultado.configurado && resultado.opcoes.length > 0) {
         const escolhida =
           body.freteOpcaoId != null ? resultado.opcoes.find((o) => o.id === body.freteOpcaoId) : null;

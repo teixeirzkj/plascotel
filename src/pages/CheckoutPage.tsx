@@ -26,11 +26,14 @@ const initialCustomer: CustomerData = {
   complemento: "",
 };
 
+const ENDERECO_OBRIGATORIO: (keyof CustomerData)[] = ["cep", "estado", "cidade", "bairro", "rua", "numero"];
+
 export default function CheckoutPage() {
   const { items, subtotal, clear } = useCartStore();
   const setOrder = useLastOrderStore((s) => s.setOrder);
   const navigate = useNavigate();
 
+  const [etapa, setEtapa] = useState<1 | 2>(1);
   const [cliente, setCliente] = useState<CustomerData>(initialCustomer);
   const [pagamento, setPagamento] = useState<"mercadopago" | "whatsapp">("mercadopago");
   const [loading, setLoading] = useState(false);
@@ -49,6 +52,8 @@ export default function CheckoutPage() {
   const frete = freteOpcaoSelecionada ? freteOpcaoSelecionada.preco : freteFallback;
   const total = sub + frete;
 
+  const enderecoCompleto = ENDERECO_OBRIGATORIO.every((campo) => cliente[campo].trim() !== "");
+
   // "pedidoConcluido" evita que, ao limpar o carrinho logo após finalizar a
   // compra, esse guard capture o carrinho já vazio e redirecione de volta
   // pra "/carrinho" numa corrida com o navigate() pra tela de confirmação.
@@ -63,25 +68,30 @@ export default function CheckoutPage() {
     if (cepLimpo.length !== 8) return;
 
     setBuscandoEndereco(true);
-    buscarEnderecoPorCep(cepLimpo)
-      .then((endereco) => {
-        if (!endereco) return;
-        setCliente((c) => ({
-          ...c,
-          estado: endereco.estado || c.estado,
-          cidade: endereco.cidade || c.cidade,
-          bairro: endereco.bairro || c.bairro,
-          rua: endereco.rua || c.rua,
-        }));
-      })
-      .finally(() => setBuscandoEndereco(false));
+    // Busca o endereço ANTES de cotar o frete (não em paralelo): a cotação
+    // precisa saber a cidade/estado resolvidos aqui para decidir se é
+    // entrega local (própria cidade da loja, sem transportadora).
+    const endereco = await buscarEnderecoPorCep(cepLimpo).finally(() => setBuscandoEndereco(false));
+    const clienteAtualizado: CustomerData = endereco
+      ? {
+          ...cliente,
+          estado: endereco.estado || cliente.estado,
+          cidade: endereco.cidade || cliente.cidade,
+          bairro: endereco.bairro || cliente.bairro,
+          rua: endereco.rua || cliente.rua,
+        }
+      : cliente;
+    if (endereco) setCliente(clienteAtualizado);
 
     setCalculandoFrete(true);
     setErroFrete(null);
     setOpcoesFrete([]);
     setFreteSelecionadoId(null);
     try {
-      const resultado = await calcularFrete(cepLimpo, items);
+      const resultado = await calcularFrete(cepLimpo, items, {
+        cidade: clienteAtualizado.cidade,
+        estado: clienteAtualizado.estado,
+      });
       if (!resultado.configurado) {
         setFreteIntegradoDisponivel(false);
         return;
@@ -98,6 +108,11 @@ export default function CheckoutPage() {
     } finally {
       setCalculandoFrete(false);
     }
+  }
+
+  function handleContinuar(e: React.FormEvent) {
+    e.preventDefault();
+    setEtapa(2);
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -133,165 +148,191 @@ export default function CheckoutPage() {
 
   return (
     <section className="mx-auto max-w-5xl px-6 py-12 md:px-10">
-      <h1 className="mb-8 font-display text-3xl">Finalizar compra</h1>
-      <form
-        onSubmit={handleSubmit}
-        className="grid grid-cols-1 gap-10 lg:grid-cols-[1fr_320px]"
-      >
-        <div className="flex flex-col gap-8">
-          <div>
-            <h2 className="mb-4 font-display text-xl">Dados do cliente</h2>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <Field label="Nome completo" span2>
-                <input
-                  required
-                  value={cliente.nomeCompleto}
-                  onChange={(e) => update("nomeCompleto", e.target.value)}
-                  className="input"
-                />
-              </Field>
-              <Field label="WhatsApp">
-                <input
-                  required
-                  placeholder="(11) 99999-9999"
-                  value={cliente.whatsapp}
-                  onChange={(e) => update("whatsapp", e.target.value)}
-                  className="input"
-                />
-              </Field>
-              <Field label="E-mail">
-                <input
-                  required
-                  type="email"
-                  value={cliente.email}
-                  onChange={(e) => update("email", e.target.value)}
-                  className="input"
-                />
-              </Field>
-              {pagamento === "mercadopago" && (
-                <Field label="CPF (necessário para gerar o Pix)">
+      <h1 className="mb-2 font-display text-3xl">Finalizar compra</h1>
+      <div className="mb-8 flex items-center gap-2 text-sm text-charcoal/60">
+        <span className={etapa === 1 ? "font-semibold text-charcoal" : ""}>1. Endereço e frete</span>
+        <span>→</span>
+        <span className={etapa === 2 ? "font-semibold text-charcoal" : ""}>2. Seus dados e pagamento</span>
+      </div>
+
+      <div className="grid grid-cols-1 gap-10 lg:grid-cols-[1fr_320px]">
+        {etapa === 1 ? (
+          <form onSubmit={handleContinuar} className="flex flex-col gap-8">
+            <div>
+              <h2 className="mb-4 font-display text-xl">Endereço de entrega</h2>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <Field label="CEP">
+                  <div className="relative">
+                    <input
+                      required
+                      value={cliente.cep}
+                      onChange={(e) => update("cep", e.target.value)}
+                      onBlur={handleCepBlur}
+                      placeholder="00000-000"
+                      className="input"
+                    />
+                    {(buscandoEndereco || calculandoFrete) && (
+                      <FiLoader
+                        className="absolute right-3 top-1/2 -translate-y-1/2 animate-spin text-charcoal/40"
+                        size={16}
+                      />
+                    )}
+                  </div>
+                </Field>
+                <Field label="Estado">
                   <input
                     required
-                    placeholder="000.000.000-00"
-                    value={cliente.cpf}
-                    onChange={(e) => update("cpf", e.target.value)}
+                    value={cliente.estado}
+                    onChange={(e) => update("estado", e.target.value)}
                     className="input"
                   />
                 </Field>
-              )}
-            </div>
-          </div>
-
-          <div>
-            <h2 className="mb-4 font-display text-xl">Endereço de entrega</h2>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <Field label="CEP">
-                <div className="relative">
+                <Field label="Cidade">
                   <input
                     required
-                    value={cliente.cep}
-                    onChange={(e) => update("cep", e.target.value)}
-                    onBlur={handleCepBlur}
-                    placeholder="00000-000"
+                    value={cliente.cidade}
+                    onChange={(e) => update("cidade", e.target.value)}
                     className="input"
                   />
-                  {(buscandoEndereco || calculandoFrete) && (
-                    <FiLoader
-                      className="absolute right-3 top-1/2 -translate-y-1/2 animate-spin text-charcoal/40"
-                      size={16}
+                </Field>
+                <Field label="Bairro">
+                  <input
+                    required
+                    value={cliente.bairro}
+                    onChange={(e) => update("bairro", e.target.value)}
+                    className="input"
+                  />
+                </Field>
+                <Field label="Rua" span2>
+                  <input
+                    required
+                    value={cliente.rua}
+                    onChange={(e) => update("rua", e.target.value)}
+                    className="input"
+                  />
+                </Field>
+                <Field label="Número">
+                  <input
+                    required
+                    value={cliente.numero}
+                    onChange={(e) => update("numero", e.target.value)}
+                    className="input"
+                  />
+                </Field>
+                <Field label="Complemento">
+                  <input
+                    value={cliente.complemento}
+                    onChange={(e) => update("complemento", e.target.value)}
+                    className="input"
+                  />
+                </Field>
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={!enderecoCompleto || calculandoFrete}
+              className="w-full rounded-full bg-charcoal py-3.5 font-semibold text-white transition hover:bg-charcoal-800 disabled:opacity-40 sm:w-auto sm:self-start sm:px-10"
+            >
+              {calculandoFrete ? "Calculando frete..." : "Continuar"}
+            </button>
+          </form>
+        ) : (
+          <form id="checkout-form" onSubmit={handleSubmit} className="flex flex-col gap-8">
+            <div>
+              <button
+                type="button"
+                onClick={() => setEtapa(1)}
+                className="mb-4 text-sm font-medium text-wood-700 hover:underline"
+              >
+                ← Voltar pro endereço
+              </button>
+              <h2 className="mb-4 font-display text-xl">Dados do cliente</h2>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <Field label="Nome completo" span2>
+                  <input
+                    required
+                    value={cliente.nomeCompleto}
+                    onChange={(e) => update("nomeCompleto", e.target.value)}
+                    className="input"
+                  />
+                </Field>
+                <Field label="WhatsApp">
+                  <input
+                    required
+                    placeholder="(11) 99999-9999"
+                    value={cliente.whatsapp}
+                    onChange={(e) => update("whatsapp", e.target.value)}
+                    className="input"
+                  />
+                </Field>
+                <Field label="E-mail">
+                  <input
+                    required
+                    type="email"
+                    value={cliente.email}
+                    onChange={(e) => update("email", e.target.value)}
+                    className="input"
+                  />
+                </Field>
+                {pagamento === "mercadopago" && (
+                  <Field label="CPF (necessário para gerar o Pix)">
+                    <input
+                      required
+                      placeholder="000.000.000-00"
+                      value={cliente.cpf}
+                      onChange={(e) => update("cpf", e.target.value)}
+                      className="input"
                     />
-                  )}
-                </div>
-              </Field>
-              <Field label="Estado">
-                <input
-                  required
-                  value={cliente.estado}
-                  onChange={(e) => update("estado", e.target.value)}
-                  className="input"
-                />
-              </Field>
-              <Field label="Cidade">
-                <input
-                  required
-                  value={cliente.cidade}
-                  onChange={(e) => update("cidade", e.target.value)}
-                  className="input"
-                />
-              </Field>
-              <Field label="Bairro">
-                <input
-                  required
-                  value={cliente.bairro}
-                  onChange={(e) => update("bairro", e.target.value)}
-                  className="input"
-                />
-              </Field>
-              <Field label="Rua" span2>
-                <input
-                  required
-                  value={cliente.rua}
-                  onChange={(e) => update("rua", e.target.value)}
-                  className="input"
-                />
-              </Field>
-              <Field label="Número">
-                <input
-                  required
-                  value={cliente.numero}
-                  onChange={(e) => update("numero", e.target.value)}
-                  className="input"
-                />
-              </Field>
-              <Field label="Complemento">
-                <input
-                  value={cliente.complemento}
-                  onChange={(e) => update("complemento", e.target.value)}
-                  className="input"
-                />
-              </Field>
+                  </Field>
+                )}
+              </div>
             </div>
-          </div>
 
-          <div>
-            <h2 className="mb-4 font-display text-xl">Forma de pagamento</h2>
-            <div className="flex flex-col gap-3">
-              <label
-                className={`flex cursor-pointer items-center gap-2.5 rounded-xl border px-3 py-2.5 ${
-                  pagamento === "mercadopago"
-                    ? "border-charcoal bg-wood-50"
-                    : "border-sand"
-                }`}
-              >
-                <input
-                  type="radio"
-                  name="pagamento"
-                  checked={pagamento === "mercadopago"}
-                  onChange={() => setPagamento("mercadopago")}
-                  className="h-4 w-4 accent-wood-700"
-                />
-                <p className="text-sm font-medium">Pagamento online (Pix)</p>
-              </label>
+            <div>
+              <h2 className="mb-4 font-display text-xl">Forma de pagamento</h2>
+              <div className="flex flex-col gap-3">
+                <label
+                  className={`flex cursor-pointer items-center gap-2.5 rounded-xl border px-3 py-2.5 ${
+                    pagamento === "mercadopago" ? "border-charcoal bg-wood-50" : "border-sand"
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="pagamento"
+                    checked={pagamento === "mercadopago"}
+                    onChange={() => setPagamento("mercadopago")}
+                    className="h-4 w-4 accent-wood-700"
+                  />
+                  <p className="text-sm font-medium">Pagamento online (Pix)</p>
+                </label>
 
-              <label
-                className={`flex cursor-pointer items-center gap-2.5 rounded-xl border px-3 py-2.5 ${
-                  pagamento === "whatsapp"
-                    ? "border-charcoal bg-wood-50"
-                    : "border-sand"
-                }`}
-              >
-                <input
-                  type="radio"
-                  name="pagamento"
-                  checked={pagamento === "whatsapp"}
-                  onChange={() => setPagamento("whatsapp")}
-                  className="h-4 w-4 accent-wood-700"
-                />
-                <p className="text-sm font-medium">Pagamento pelo WhatsApp</p>
-              </label>
+                <label
+                  className={`flex cursor-pointer items-center gap-2.5 rounded-xl border px-3 py-2.5 ${
+                    pagamento === "whatsapp" ? "border-charcoal bg-wood-50" : "border-sand"
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="pagamento"
+                    checked={pagamento === "whatsapp"}
+                    onChange={() => setPagamento("whatsapp")}
+                    className="h-4 w-4 accent-wood-700"
+                  />
+                  <p className="text-sm font-medium">Pagamento pelo WhatsApp</p>
+                </label>
+              </div>
             </div>
-          </div>
-        </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full rounded-full bg-charcoal py-3.5 font-semibold text-white transition hover:bg-charcoal-800 disabled:opacity-60 lg:hidden"
+            >
+              {loading ? "Processando..." : "Confirmar pedido"}
+            </button>
+          </form>
+        )}
 
         <div className="h-fit rounded-2xl bg-white p-6 shadow-card">
           <h2 className="mb-4 font-display text-xl">Resumo do pedido</h2>
@@ -319,9 +360,7 @@ export default function CheckoutPage() {
                 <label
                   key={o.id}
                   className={`flex cursor-pointer items-center justify-between gap-3 rounded-xl border p-2.5 text-sm ${
-                    freteSelecionadoId === o.id
-                      ? "border-charcoal bg-wood-50"
-                      : "border-sand"
+                    freteSelecionadoId === o.id ? "border-charcoal bg-wood-50" : "border-sand"
                   }`}
                 >
                   <span className="flex items-center gap-2">
@@ -337,9 +376,7 @@ export default function CheckoutPage() {
                       {o.prazoDias ? ` · ${o.prazoDias} dia(s) úteis` : ""}
                     </span>
                   </span>
-                  <span className="font-medium">
-                    {o.preco === 0 ? "Grátis" : formatCurrency(o.preco)}
-                  </span>
+                  <span className="font-medium">{o.preco === 0 ? "Grátis" : formatCurrency(o.preco)}</span>
                 </label>
               ))}
             </div>
@@ -361,15 +398,23 @@ export default function CheckoutPage() {
             <span>Total</span>
             <span>{formatCurrency(total)}</span>
           </div>
-          <button
-            type="submit"
-            disabled={loading}
-            className="mt-5 w-full rounded-full bg-charcoal py-3.5 font-semibold text-white transition hover:bg-charcoal-800 disabled:opacity-60"
-          >
-            {loading ? "Processando..." : "Confirmar pedido"}
-          </button>
+
+          {etapa === 1 ? (
+            <p className="mt-5 text-center text-xs text-charcoal/50">
+              Preencha o endereço e clique em "Continuar" para informar seus dados e pagar.
+            </p>
+          ) : (
+            <button
+              type="submit"
+              form="checkout-form"
+              disabled={loading}
+              className="mt-5 hidden w-full rounded-full bg-charcoal py-3.5 font-semibold text-white transition hover:bg-charcoal-800 disabled:opacity-60 lg:block"
+            >
+              {loading ? "Processando..." : "Confirmar pedido"}
+            </button>
+          )}
         </div>
-      </form>
+      </div>
     </section>
   );
 }

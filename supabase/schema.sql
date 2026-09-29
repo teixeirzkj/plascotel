@@ -567,7 +567,7 @@ begin
     p_forma_pagamento,
     p_cliente,
     v_status,
-    case when v_status = 'aguardando_pagamento' then now() + interval '40 minutes' end
+    case when v_status = 'aguardando_pagamento' then now() + interval '30 minutes' end
   )
   returning pedidos.id, pedidos.numero, pedidos.criado_em
   into v_pedido_id, v_numero, v_criado_em;
@@ -714,33 +714,16 @@ revoke all on function confirmar_pagamento_pedido(text, text, text, numeric) fro
 revoke all on function confirmar_pagamento_pedido(text, text, text, numeric) from anon;
 grant execute on function confirmar_pagamento_pedido(text, text, text, numeric) to service_role;
 
--- Status público (para a tela de retorno do cliente). Devolve só o
--- mínimo — o order_nsu é imprevisível (uuid sem hífen), então funciona
--- como token: quem não fez o pedido não descobre o total de ninguém.
---
--- "create or replace" não permite mudar as colunas de retorno de uma
--- função existente (é considerado "mudar o tipo de retorno") — por isso
--- precisa apagar a versão antiga antes de recriar com a coluna nova.
-drop function if exists status_pedido_publico(text);
-
-create or replace function status_pedido_publico(p_order_nsu text)
-returns table (status text, numero integer, total numeric, codigo_rastreio text)
-language sql
-security definer
-set search_path = public
-as $$
-  select p.status, p.numero, p.total, p.codigo_rastreio
-  from pedidos p
-  where p.order_nsu = p_order_nsu;
-$$;
-
-grant execute on function status_pedido_publico(text) to anon;
-grant execute on function status_pedido_publico(text) to authenticated;
-
 -- Cancela pedidos "aguardando_pagamento" cujo prazo (expira_em, definido
 -- em criar_pedido_seguro) já passou — cliente que abriu o checkout e
 -- nunca pagou. O gatilho trg_restaurar_estoque já devolve o estoque
 -- sozinho quando o status vira 'cancelado'.
+--
+-- Não existe um cron rodando isso sozinho — em vez disso, é chamada de
+-- forma oportunista sempre que alguém olha pedidos (status_pedido_publico,
+-- abaixo, e o carregamento do painel /admin/pedidos), o que já é frequente
+-- o bastante para o estoque voltar rápido sem depender de infraestrutura
+-- extra de cron.
 create or replace function expirar_pedidos_pendentes()
 returns integer
 language plpgsql
@@ -767,6 +750,31 @@ $$;
 revoke all on function expirar_pedidos_pendentes() from public;
 revoke all on function expirar_pedidos_pendentes() from anon;
 grant execute on function expirar_pedidos_pendentes() to service_role;
+grant execute on function expirar_pedidos_pendentes() to authenticated;
+
+-- Status público (para a tela de retorno do cliente). Devolve só o
+-- mínimo — o order_nsu é imprevisível (uuid sem hífen), então funciona
+-- como token: quem não fez o pedido não descobre o total de ninguém.
+--
+-- "create or replace" não permite mudar as colunas de retorno de uma
+-- função existente (é considerado "mudar o tipo de retorno") — por isso
+-- precisa apagar a versão antiga antes de recriar com a coluna nova.
+drop function if exists status_pedido_publico(text);
+
+create or replace function status_pedido_publico(p_order_nsu text)
+returns table (status text, numero integer, total numeric, codigo_rastreio text, expira_em timestamptz)
+language sql
+security definer
+set search_path = public
+as $$
+  select expirar_pedidos_pendentes();
+  select p.status, p.numero, p.total, p.codigo_rastreio, p.expira_em
+  from pedidos p
+  where p.order_nsu = p_order_nsu;
+$$;
+
+grant execute on function status_pedido_publico(text) to anon;
+grant execute on function status_pedido_publico(text) to authenticated;
 
 -- ---------------------------------------------------------
 -- Tokens de integrações externas (ex: Melhor Envio, que usa OAuth2 com

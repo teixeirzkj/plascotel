@@ -44,6 +44,28 @@ function ehCarrinhoAbandonado(p: AdminOrder) {
   return p.formaPagamento === "mercadopago" && p.status === "cancelado";
 }
 
+/** Contagem regressiva até o pedido expirar (30 min sem pagar, ver expira_em). */
+function TempoRestante({ expiraEm }: { expiraEm: string }) {
+  const [agora, setAgora] = useState(() => Date.now());
+
+  useEffect(() => {
+    const timer = setInterval(() => setAgora(Date.now()), 15000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const restanteMs = new Date(expiraEm).getTime() - agora;
+  if (restanteMs <= 0) {
+    return <span className="text-xs font-medium text-offer">expirando...</span>;
+  }
+  const minutos = Math.floor(restanteMs / 60000);
+  const segundos = Math.floor((restanteMs % 60000) / 1000);
+  return (
+    <span className={`text-xs font-medium ${minutos < 5 ? "text-offer" : "text-charcoal/50"}`}>
+      expira em {minutos}:{String(segundos).padStart(2, "0")}
+    </span>
+  );
+}
+
 function paraCsv(pedidos: AdminOrder[]) {
   const linhas = [
     ["Número", "Data", "Cliente", "WhatsApp", "Status", "Forma de pagamento", "Subtotal", "Frete", "Total"],
@@ -82,7 +104,13 @@ export default function AdminOrders() {
       .finally(() => setLoading(false));
   }
 
-  useEffect(reload, []);
+  useEffect(() => {
+    reload();
+    // Recarrega periodicamente pra pedidos vencidos (30 min sem pagar)
+    // saírem sozinhos de "aguardando pagamento" sem precisar dar F5.
+    const timer = setInterval(reload, 60000);
+    return () => clearInterval(timer);
+  }, []);
 
   const buscaNormalizada = busca.trim().toLowerCase();
   const pedidosFiltrados = pedidos.filter((p) => {
@@ -291,6 +319,9 @@ export default function AdminOrders() {
                   <span className="hidden text-sm font-medium text-charcoal/70 sm:inline">
                     {formatCurrency(p.total)}
                   </span>
+                  {p.status === "aguardando_pagamento" && p.expiraEm && (
+                    <TempoRestante expiraEm={p.expiraEm} />
+                  )}
                   <span
                     className={`rounded-full px-3 py-1 text-xs font-bold text-white ${
                       statusColor[p.status] ?? "bg-charcoal"

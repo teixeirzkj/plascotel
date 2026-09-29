@@ -184,6 +184,7 @@ export interface AdminOrder {
   valorPago: number | null;
   pagoEm: string | null;
   codigoRastreio: string | null;
+  expiraEm: string | null;
   cliente: Record<string, string>;
   criadoEm: string;
   itens: { nome: string; quantidade: number; precoUnitario: number }[];
@@ -191,6 +192,11 @@ export interface AdminOrder {
 
 export async function fetchAdminOrders(): Promise<AdminOrder[]> {
   const db = requireSupabase();
+  // Cancela pedidos "aguardando_pagamento" vencidos (30 min sem pagar) antes
+  // de listar — sem isso, pedidos abandonados ficavam parados na lista pra
+  // sempre em vez de voltar o estoque e virar "cancelado" sozinhos.
+  await db.rpc("expirar_pedidos_pendentes");
+
   const { data, error } = await db
     .from("pedidos")
     .select(
@@ -211,6 +217,7 @@ export async function fetchAdminOrders(): Promise<AdminOrder[]> {
     valorPago: row.valor_pago != null ? Number(row.valor_pago) : null,
     pagoEm: row.pago_em,
     codigoRastreio: row.codigo_rastreio,
+    expiraEm: row.expira_em,
     cliente: row.cliente,
     criadoEm: row.criado_em,
     itens: (row.pedido_itens ?? []).map((i: any) => ({

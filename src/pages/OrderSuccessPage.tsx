@@ -8,14 +8,18 @@ import { formatCurrency } from "../lib/format";
 import { buildWhatsAppLink, STORE_NAME } from "../config/store";
 import { supabase } from "../lib/supabase";
 
-const TENTATIVAS_MAX = 20;
-const INTERVALO_MS = 3000;
+// O pedido tem 30 minutos pra ser pago (ver expira_em em criar_pedido_seguro,
+// supabase/schema.sql) — o polling precisa cobrir essa janela inteira,
+// senão a página para de checar sozinha antes do prazo acabar.
+const INTERVALO_MS = 5000;
+const TENTATIVAS_MAX = (30 * 60 * 1000) / INTERVALO_MS;
 
 interface StatusPublico {
   status: string;
   numero: number;
   total: number;
   codigoRastreio: string | null;
+  expiraEm: string | null;
 }
 
 /**
@@ -54,6 +58,7 @@ export default function OrderSuccessPage() {
             numero: linha.numero,
             total: Number(linha.total),
             codigoRastreio: linha.codigo_rastreio,
+            expiraEm: linha.expira_em,
           });
         } else if (!error) {
           setNaoEncontrado(true);
@@ -76,6 +81,7 @@ export default function OrderSuccessPage() {
   const numero = statusRemoto?.numero ?? order?.numero;
   const total = statusRemoto?.total ?? order?.total ?? 0;
   const codigoRastreio = statusRemoto?.codigoRastreio ?? null;
+  const expiraEm = statusRemoto?.expiraEm ?? null;
 
   const numeroExibido = numero ?? "?";
   const mensagem = order
@@ -92,6 +98,8 @@ Endereço de entrega: ${order.cliente.rua}, ${order.cliente.numero} - ${order.cl
         naoEncontrado={naoEncontrado && !statusRemoto}
         codigoRastreio={codigoRastreio}
       />
+
+      {status === "aguardando_pagamento" && expiraEm && <Cronometro expiraEm={expiraEm} />}
 
       {order?.formaPagamento === "mercadopago" &&
         order.pixQrCodeBase64 &&
@@ -237,6 +245,46 @@ function StatusHeader({
         <p className="mx-auto mt-3 flex w-fit items-center gap-2 rounded-full bg-wood-100 px-4 py-2 text-sm font-medium text-wood-700">
           <FiTruck size={16} /> Rastreio: {codigoRastreio}
         </p>
+      )}
+    </motion.div>
+  );
+}
+
+/**
+ * Cronômetro regressivo até o pedido expirar (30 minutos, ver expira_em em
+ * criar_pedido_seguro). Não precisa avisar ninguém quando chega a zero — o
+ * próprio polling de status logo acima já dispara `expirar_pedidos_pendentes`
+ * a cada consulta, então assim que o prazo estoura o status muda sozinho
+ * pra "cancelado" na próxima vez que a página checar.
+ */
+function Cronometro({ expiraEm }: { expiraEm: string }) {
+  const [agora, setAgora] = useState(() => Date.now());
+
+  useEffect(() => {
+    const timer = setInterval(() => setAgora(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const restanteMs = Math.max(0, new Date(expiraEm).getTime() - agora);
+  const minutos = Math.floor(restanteMs / 60000);
+  const segundos = Math.floor((restanteMs % 60000) / 1000);
+  const acabando = restanteMs < 5 * 60 * 1000;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className={`mx-auto mt-6 flex w-fit items-center gap-2 rounded-full px-4 py-2 text-sm font-medium ${
+        acabando ? "bg-offer/10 text-offer" : "bg-wood-100 text-wood-700"
+      }`}
+    >
+      <FiLoader size={16} className={restanteMs > 0 ? "animate-spin" : ""} />
+      {restanteMs > 0 ? (
+        <span>
+          Tempo restante para pagar: {minutos}:{String(segundos).padStart(2, "0")}
+        </span>
+      ) : (
+        <span>Prazo esgotado — atualizando...</span>
       )}
     </motion.div>
   );

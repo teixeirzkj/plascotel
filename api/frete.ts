@@ -12,9 +12,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return;
   }
 
-  const { cepDestino, itens } = (req.body ?? {}) as {
+  const { cepDestino, itens, cidadeDestino, estadoDestino } = (req.body ?? {}) as {
     cepDestino?: string;
     itens?: ItemFrete[];
+    cidadeDestino?: string;
+    estadoDestino?: string;
   };
 
   const cepLimpo = limparCep(cepDestino ?? "");
@@ -28,7 +30,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const resultado = await cotarFrete(cepLimpo, itens);
+    const resultado = await cotarFrete(cepLimpo, itens, { cidade: cidadeDestino, estado: estadoDestino });
     res.status(200).json(resultado);
   } catch {
     res.status(502).json({ error: "Não foi possível calcular o frete no momento." });

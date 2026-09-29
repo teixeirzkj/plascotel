@@ -67,6 +67,29 @@ export function fretePadraoPara(subtotal: number) {
   return subtotal >= FRETE_GRATIS_ACIMA_DE ? 0 : FRETE_PADRAO;
 }
 
+function normalizar(texto: string) {
+  return texto
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .trim()
+    .toLowerCase();
+}
+
+/**
+ * Entrega dentro da própria cidade da loja não usa transportadora (é
+ * combinada por fora) — por isso nunca cobra o frete calculado pelo Melhor
+ * Envio, que cobraria como se fosse despachar pelos Correios/parceiros.
+ */
+function ehEntregaLocal(cidadeDestino?: string, estadoDestino?: string) {
+  const cidadeLoja = process.env.LOJA_CIDADE_ORIGEM;
+  const estadoLoja = process.env.LOJA_ESTADO_ORIGEM;
+  if (!cidadeLoja || !estadoLoja || !cidadeDestino || !estadoDestino) return false;
+  return (
+    normalizar(cidadeDestino) === normalizar(cidadeLoja) &&
+    normalizar(estadoDestino) === normalizar(estadoLoja)
+  );
+}
+
 // ---------------------------------------------------------------------------
 // OAuth2 do Melhor Envio (access_token/refresh_token guardados no Supabase)
 // ---------------------------------------------------------------------------
@@ -195,8 +218,16 @@ async function obterTokenValido(): Promise<string | null> {
  */
 export async function cotarFrete(
   cepDestino: string,
-  itens: ItemFrete[]
+  itens: ItemFrete[],
+  destino?: { cidade?: string; estado?: string }
 ): Promise<{ configurado: boolean; opcoes: OpcaoFrete[] }> {
+  if (ehEntregaLocal(destino?.cidade, destino?.estado)) {
+    return {
+      configurado: true,
+      opcoes: [{ id: 0, servico: "Entrega local (combinada)", preco: 0, prazoDias: null }],
+    };
+  }
+
   const cepOrigem = limparCep(process.env.MELHOR_ENVIO_CEP_ORIGEM ?? "");
   if (!cepOrigem) {
     return { configurado: false, opcoes: [] };
