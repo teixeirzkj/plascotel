@@ -1,13 +1,19 @@
+import { obterTokenValido } from "./melhorEnvioAuth";
+
 /**
  * Cotação de frete via Melhor Envio — lógica compartilhada entre api/frete.ts
  * (usado pelo checkout só para EXIBIR opções ao cliente) e
  * api/criar-pagamento.ts (que cota de novo, no servidor, para decidir o
  * valor realmente cobrado — nunca confia no preço que o navegador mandou).
  *
+ * A API do Melhor Envio usa OAuth2 (não uma chave fixa) — o token é obtido
+ * uma vez em api/melhor-envio-callback.ts (depois de autorizar o app deles)
+ * e renovado sozinho a partir daí, ver api/_lib/melhorEnvioAuth.ts.
+ *
  * Configure no .env / nas variáveis de ambiente da Vercel:
- *   MELHOR_ENVIO_TOKEN       — token gerado em melhorenvio.com.br
- *   MELHOR_ENVIO_CEP_ORIGEM  — CEP de onde os pedidos são enviados
- *   MELHOR_ENVIO_SANDBOX     — "true" para usar o ambiente de testes
+ *   MELHOR_ENVIO_CLIENT_ID     — Área Dev > seu aplicativo, no painel deles
+ *   MELHOR_ENVIO_CLIENT_SECRET — idem
+ *   MELHOR_ENVIO_CEP_ORIGEM    — CEP de onde os pedidos são enviados
  */
 
 export interface ItemFrete {
@@ -51,15 +57,22 @@ export function fretePadraoPara(subtotal: number) {
   return subtotal >= FRETE_GRATIS_ACIMA_DE ? 0 : FRETE_PADRAO;
 }
 
-/** Retorna as opções de frete do Melhor Envio, ou `configurado: false` se o token não estiver definido no servidor. */
+/**
+ * Retorna as opções de frete do Melhor Envio, ou `configurado: false` se a
+ * conexão OAuth ainda não foi autorizada (ver api/melhor-envio-callback.ts)
+ * ou o CEP de origem não estiver definido.
+ */
 export async function cotarFrete(
   cepDestino: string,
   itens: ItemFrete[]
 ): Promise<{ configurado: boolean; opcoes: OpcaoFrete[] }> {
-  const token = process.env.MELHOR_ENVIO_TOKEN;
   const cepOrigem = limparCep(process.env.MELHOR_ENVIO_CEP_ORIGEM ?? "");
+  if (!cepOrigem) {
+    return { configurado: false, opcoes: [] };
+  }
 
-  if (!token || !cepOrigem) {
+  const token = await obterTokenValido();
+  if (!token) {
     return { configurado: false, opcoes: [] };
   }
 
@@ -68,10 +81,7 @@ export async function cotarFrete(
     return { configurado: true, opcoes: [] };
   }
 
-  const sandbox = process.env.MELHOR_ENVIO_SANDBOX === "true";
-  const baseUrl = sandbox
-    ? "https://sandbox.melhorenvio.com.br"
-    : "https://melhorenvio.com.br";
+  const baseUrl = "https://melhorenvio.com.br";
 
   const products = itens.map((item, index) => ({
     id: String(index + 1),

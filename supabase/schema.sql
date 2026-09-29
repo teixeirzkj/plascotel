@@ -769,6 +769,24 @@ revoke all on function expirar_pedidos_pendentes() from anon;
 grant execute on function expirar_pedidos_pendentes() to service_role;
 
 -- ---------------------------------------------------------
+-- Tokens de integrações externas (ex: Melhor Envio, que usa OAuth2 com
+-- access_token/refresh_token em vez de uma chave fixa). Tabela sensível:
+-- RLS ligado e SEM nenhuma política — nem o admin autenticado nem o
+-- público conseguem ler isso pelo navegador, só o service_role (que
+-- ignora RLS) dentro das funções serverless.
+-- ---------------------------------------------------------
+
+create table if not exists integracoes_tokens (
+  servico text primary key,
+  access_token text not null,
+  refresh_token text not null,
+  expira_em timestamptz not null,
+  atualizado_em timestamptz not null default now()
+);
+
+alter table integracoes_tokens enable row level security;
+
+-- ---------------------------------------------------------
 -- Dados iniciais (opcional): descomente para popular o banco com os
 -- mesmos produtos de exemplo usados no site antes de conectar o banco.
 -- ---------------------------------------------------------
