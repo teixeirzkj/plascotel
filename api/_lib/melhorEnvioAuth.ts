@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 
+// Módulo compartilhado por api/melhor-envio-callback.ts e api/_lib/frete.ts.
 /**
  * A API do Melhor Envio usa OAuth2 (não uma chave fixa): o token de acesso
  * expira em ~30 dias e precisa ser renovado com um refresh_token. Guardamos
