@@ -229,9 +229,16 @@ async function processarPagamento(req: VercelRequest, res: VercelResponse) {
   // Pix via Mercado Pago: o QR code é gerado AQUI, com o valor que a gente
   // mesmo acabou de calcular — o cliente não tem como cobrar um valor
   // diferente do que o pedido realmente tem.
-  const siteUrl = (process.env.SITE_URL || `https://${req.headers.host}`).replace(/\/$/, "");
-  if (!process.env.MERCADOPAGO_ACCESS_TOKEN) {
-    console.error("criar-pagamento: MERCADOPAGO_ACCESS_TOKEN não configurado");
+  const siteUrlBruto = process.env.SITE_URL || `https://${req.headers.host}`;
+  // Aceita SITE_URL configurada sem o protocolo (ex: "plascotel.vercel.app")
+  // — sem isso, a URL fica inválida e o Mercado Pago recusa o pagamento.
+  const siteUrl = (/^https?:\/\//i.test(siteUrlBruto) ? siteUrlBruto : `https://${siteUrlBruto}`).replace(
+    /\/$/,
+    ""
+  );
+  const webhookSecret = process.env.MERCADOPAGO_WEBHOOK_SECRET;
+  if (!process.env.MERCADOPAGO_ACCESS_TOKEN || !webhookSecret) {
+    console.error("criar-pagamento: MERCADOPAGO_ACCESS_TOKEN ou MERCADOPAGO_WEBHOOK_SECRET não configurado");
     res.status(500).json({ error: "Pagamento online não está configurado no momento." });
     return;
   }
@@ -241,7 +248,7 @@ async function processarPagamento(req: VercelRequest, res: VercelResponse) {
       valor: Number(pedido.total),
       descricao: `Pedido #${pedido.numero} — Plascotel`,
       orderNsu: pedido.order_nsu,
-      notificationUrl: `${siteUrl}/api/mercadopago-webhook`,
+      notificationUrl: `${siteUrl}/api/mercadopago-webhook?t=${encodeURIComponent(webhookSecret)}`,
       cliente: { nomeCompleto: cliente.nomeCompleto, email: cliente.email, cpf: cliente.cpf },
     });
 
