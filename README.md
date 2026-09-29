@@ -25,7 +25,6 @@ Copie `.env.example` para `.env` e preencha:
 |---|---|
 | `VITE_WHATSAPP_NUMBER` | Número do WhatsApp da loja, só dígitos com DDI+DDD (ex: `5511999999999`). Enquanto vazio, os botões de WhatsApp ficam ocultos. |
 | `VITE_INSTAGRAM_URL` | Link do Instagram da loja. Enquanto vazio, os ícones/seções de Instagram ficam ocultos. |
-| `VITE_INFINITEPAY_HANDLE` | InfiniteTag da conta InfinitePay (sem o `$`), usada para gerar o link de pagamento dinâmico a cada pedido. |
 | `VITE_STORE_EMAIL`, `VITE_STORE_ADDRESS`, `VITE_STORE_HOURS` | Aparecem no rodapé e na página de contato. |
 | `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` | Conectam o banco de dados (veja abaixo). |
 
@@ -118,32 +117,34 @@ Acesse em `/admin/login`. Depois de logado:
 - `/admin/pedidos` — ver pedidos recebidos e mudar o status (o estoque
   reage automaticamente ao cancelamento).
 
-## Pagamento (InfinitePay)
+## Pagamento (Mercado Pago Pix)
 
-O checkout usa o Checkout Integrado da InfinitePay: a cada pedido, o
-site chama a API pública da InfinitePay (`src/lib/infinitepay.ts`) e
-gera um link de pagamento com o valor exato do carrinho, na hora — não
-é um link fixo. Só precisa da InfiniteTag da conta (o "@" que aparece
-no canto superior esquerdo do app, sem o `$` na frente), configurada em
-`VITE_INFINITEPAY_HANDLE` (o padrão já é `riquelme-pereira-wkg`).
+O checkout online gera um pagamento Pix pela API do Mercado Pago
+(`api/_lib/mercadoPago.ts`): a cada pedido, o site cria a cobrança com o
+valor exato do carrinho e mostra o QR code + código "copia e cola" direto
+na própria página de confirmação (`src/pages/OrderSuccessPage.tsx`) — o
+cliente nunca é redirecionado para outro site. Precisa de um
+`MERCADOPAGO_ACCESS_TOKEN` (Suas integrações → seu aplicativo →
+Credenciais, em mercadopago.com.br/developers), configurado só no
+servidor (variável sem prefixo `VITE_`).
 
-Se o pedido não conseguir gerar o link (ex: instabilidade da
-InfinitePay), o pedido já fica salvo e o cliente é orientado a
-combinar o pagamento pelo WhatsApp informando o número do pedido.
+Se o pedido não conseguir gerar o Pix (ex: instabilidade do Mercado
+Pago), o pedido já fica salvo e o cliente é orientado a combinar o
+pagamento pelo WhatsApp informando o número do pedido.
 
 ### Confirmação automática do pagamento
 
-Um pedido pago pela InfinitePay entra no banco com status
+Um pedido pago via Pix entra no banco com status
 `aguardando_pagamento` — ele já aparece em `/admin/pedidos`, mas não é
 tratado como um pedido pronto pra despachar até o pagamento ser
 confirmado de verdade. Isso acontece assim:
 
-1. Ao gerar o link de pagamento, o site também passa um `webhook_url`
-   apontando pra `api/infinitepay-webhook.ts`.
-2. Quando o cliente paga, a InfinitePay chama esse webhook.
-3. A função **não confia** só no que chega no webhook — ela liga de
-   volta pra InfinitePay (endpoint `payment_check`) pra confirmar que o
-   pagamento realmente foi aprovado.
+1. Ao gerar o Pix, o site também passa uma `notification_url` apontando
+   pra `api/mercadopago-webhook.ts`.
+2. Quando o cliente paga, o Mercado Pago chama esse webhook.
+3. A função **não confia** só no que chega no webhook — ela consulta de
+   volta a própria API do Mercado Pago (`GET /v1/payments/{id}`) pra
+   confirmar que o pagamento realmente foi aprovado.
 4. Só depois dessa confirmação o pedido vira `confirmado` no banco
    (usando a Service Role Key do Supabase, configurada em
    `SUPABASE_SERVICE_ROLE_KEY` — variável só do servidor, nunca exposta

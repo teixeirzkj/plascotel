@@ -3,8 +3,8 @@ import type { CartItem, CustomerData, Order } from "../types";
 
 /**
  * Cria o pedido chamando a função serverless api/criar-pagamento.ts, que
- * decide preço, frete e (se for InfinitePay) gera o link de pagamento —
- * tudo a partir do banco, no servidor. O navegador manda só
+ * decide preço, frete e (se for pagamento online) gera o Pix — tudo a
+ * partir do banco, no servidor. O navegador manda só
  * produtoId/varianteId/quantidade, nunca preço (ver
  * PLASCOTEL_pagamento_seguro.md).
  *
@@ -15,7 +15,7 @@ import type { CartItem, CustomerData, Order } from "../types";
 export async function placeOrder(
   itens: CartItem[],
   cliente: CustomerData,
-  formaPagamento: "infinitepay" | "whatsapp",
+  formaPagamento: "mercadopago" | "whatsapp",
   opts: { cepDestino?: string; freteOpcaoId?: number | null } = {}
 ): Promise<Order> {
   if (isSupabaseConfigured) {
@@ -59,7 +59,9 @@ export async function placeOrder(
       formaPagamento,
       cliente,
       criadoEm: data.criadoEm,
-      paymentUrl: data.paymentUrl,
+      pixQrCode: data.pixQrCode,
+      pixQrCodeBase64: data.pixQrCodeBase64,
+      pixExpiraEm: data.pixExpiraEm,
     };
   }
 

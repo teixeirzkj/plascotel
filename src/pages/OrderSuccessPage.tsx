@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Navigate, Link, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { FaWhatsapp } from "react-icons/fa";
-import { FiLoader, FiCheckCircle, FiXCircle, FiAlertTriangle, FiTruck } from "react-icons/fi";
+import { FiLoader, FiCheckCircle, FiXCircle, FiAlertTriangle, FiTruck, FiCopy } from "react-icons/fi";
 import { useLastOrderStore } from "../store/lastOrder";
 import { formatCurrency } from "../lib/format";
 import { buildWhatsAppLink, STORE_NAME } from "../config/store";
@@ -93,6 +93,12 @@ Endereço de entrega: ${order.cliente.rua}, ${order.cliente.numero} - ${order.cl
         codigoRastreio={codigoRastreio}
       />
 
+      {order?.formaPagamento === "mercadopago" &&
+        order.pixQrCodeBase64 &&
+        (status === "aguardando_pagamento" || status === null) && (
+          <PixPagamento qrCodeBase64={order.pixQrCodeBase64} qrCode={order.pixQrCode ?? ""} />
+        )}
+
       {order && (
         <div className="mt-8 rounded-2xl bg-white p-6 text-left shadow-card">
           <h2 className="mb-3 font-display text-lg">Resumo do pedido</h2>
@@ -119,7 +125,7 @@ Endereço de entrega: ${order.cliente.rua}, ${order.cliente.numero} - ${order.cl
               {order.cliente.bairro}, {order.cliente.cidade}/{order.cliente.estado}
             </p>
             <p>
-              <strong>Pagamento:</strong> {order.formaPagamento === "infinitepay" ? "InfinitePay" : "A combinar"}
+              <strong>Pagamento:</strong> {order.formaPagamento === "mercadopago" ? "Pix" : "A combinar"}
             </p>
           </div>
         </div>
@@ -182,7 +188,7 @@ function StatusHeader({
         <p className="mt-2 text-charcoal/60">
           {esgotado
             ? `Pedido #${numero} recebido. A confirmação está demorando mais que o normal — se você já pagou, ela deve chegar em instantes; senão, fale pelo WhatsApp que a gente confere pra você.`
-            : `Pedido #${numero} registrado. Assim que a InfinitePay confirmar o pagamento, atualizamos automaticamente esta página.`}
+            : `Pedido #${numero} registrado. Pague o Pix abaixo — assim que cair, atualizamos automaticamente esta página.`}
         </p>
       </motion.div>
     );
@@ -232,6 +238,55 @@ function StatusHeader({
           <FiTruck size={16} /> Rastreio: {codigoRastreio}
         </p>
       )}
+    </motion.div>
+  );
+}
+
+/** QR code + "copia e cola" do Pix, exibidos direto na página enquanto o pedido aguarda pagamento. */
+function PixPagamento({ qrCodeBase64, qrCode }: { qrCodeBase64: string; qrCode: string }) {
+  const [copiado, setCopiado] = useState(false);
+
+  async function copiarCodigo() {
+    try {
+      await navigator.clipboard.writeText(qrCode);
+      setCopiado(true);
+      setTimeout(() => setCopiado(false), 2500);
+    } catch {
+      // Sem permissão de clipboard (raro) — o cliente ainda pode selecionar
+      // o texto manualmente no campo abaixo.
+    }
+  }
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="mx-auto mt-8 flex max-w-sm flex-col items-center gap-4 rounded-2xl bg-white p-6 shadow-card"
+    >
+      <p className="text-sm font-medium text-charcoal/70">Escaneie o QR code com o app do seu banco</p>
+      <img
+        src={`data:image/png;base64,${qrCodeBase64}`}
+        alt="QR code Pix"
+        className="h-56 w-56 rounded-xl border border-sand object-contain"
+      />
+      <div className="flex w-full flex-col gap-2">
+        <p className="text-xs font-medium text-charcoal/60">Ou copie o código Pix:</p>
+        <div className="flex items-center gap-2">
+          <input
+            readOnly
+            value={qrCode}
+            onFocus={(e) => e.target.select()}
+            className="input flex-1 truncate text-xs"
+          />
+          <button
+            type="button"
+            onClick={copiarCodigo}
+            className="flex flex-none items-center gap-1.5 rounded-full bg-charcoal px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-charcoal-800"
+          >
+            <FiCopy size={14} /> {copiado ? "Copiado!" : "Copiar"}
+          </button>
+        </div>
+      </div>
     </motion.div>
   );
 }

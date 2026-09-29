@@ -1,16 +1,16 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { createClient } from "@supabase/supabase-js";
 import { cotarFrete, fretePadraoPara, limparCep, type ItemFrete } from "./_lib/frete.js";
+import { criarPagamentoPix } from "./_lib/mercadoPago.js";
 
 /**
- * Cria o pedido E (se for InfinitePay) o link de pagamento — tudo decidido
- * AQUI, no servidor, a partir do banco. O navegador manda só
- * produtoId/varianteId/quantidade; preço, frete e o link de cobrança nunca
+ * Cria o pedido E (se for pagamento online) o Pix — tudo decidido AQUI, no
+ * servidor, a partir do banco. O navegador manda só
+ * produtoId/varianteId/quantidade; preço, frete e o valor cobrado nunca
  * passam pela mão do cliente. Ver PLASCOTEL_pagamento_seguro.md.
  *
  * Variáveis de ambiente necessárias (sem prefixo VITE_):
- *   SUPABASE_SERVICE_ROLE_KEY, INFINITEPAY_HANDLE, SITE_URL,
- *   INFINITEPAY_WEBHOOK_SECRET (opcional)
+ *   SUPABASE_SERVICE_ROLE_KEY, MERCADOPAGO_ACCESS_TOKEN, SITE_URL
  */
 
 interface ItemPedidoBody {
@@ -23,6 +23,7 @@ interface ClienteBody {
   nomeCompleto: string;
   whatsapp: string;
   email: string;
+  cpf?: string;
   cep: string;
   estado: string;
   cidade: string;
@@ -64,7 +65,7 @@ async function processarPagamento(req: VercelRequest, res: VercelResponse) {
   const body = (req.body ?? {}) as {
     itens?: ItemPedidoBody[];
     cliente?: ClienteBody;
-    formaPagamento?: "infinitepay" | "whatsapp";
+    formaPagamento?: "mercadopago" | "whatsapp";
     cepDestino?: string;
     freteOpcaoId?: number | null;
   };
@@ -77,7 +78,7 @@ async function processarPagamento(req: VercelRequest, res: VercelResponse) {
     res.status(400).json({ error: "Carrinho vazio." });
     return;
   }
-  if (formaPagamento !== "infinitepay" && formaPagamento !== "whatsapp") {
+  if (formaPagamento !== "mercadopago" && formaPagamento !== "whatsapp") {
     res.status(400).json({ error: "Forma de pagamento inválida." });
     return;
   }
@@ -92,6 +93,10 @@ async function processarPagamento(req: VercelRequest, res: VercelResponse) {
     !cliente?.cep
   ) {
     res.status(400).json({ error: "Preencha todos os dados obrigatórios." });
+    return;
+  }
+  if (formaPagamento === "mercadopago" && !cliente.cpf) {
+    res.status(400).json({ error: "Informe o CPF para gerar o Pix." });
     return;
   }
 
@@ -221,66 +226,32 @@ async function processarPagamento(req: VercelRequest, res: VercelResponse) {
     return;
   }
 
-  // InfinitePay: o link é gerado AQUI, com os itens que a gente mesmo
-  // acabou de gravar em pedido_itens — o cliente não tem como cobrar um
-  // valor diferente do que o pedido realmente tem.
-  const handle = process.env.INFINITEPAY_HANDLE;
-  const webhookSecret = process.env.INFINITEPAY_WEBHOOK_SECRET;
+  // Pix via Mercado Pago: o QR code é gerado AQUI, com o valor que a gente
+  // mesmo acabou de calcular — o cliente não tem como cobrar um valor
+  // diferente do que o pedido realmente tem.
   const siteUrl = (process.env.SITE_URL || `https://${req.headers.host}`).replace(/\/$/, "");
-  if (!handle || !webhookSecret) {
-    // Sem o segredo, o webhook (agora fail-closed) nunca aceitaria a
-    // confirmação desse pagamento — melhor não abrir o link do que gerar
-    // um pedido que nunca vai conseguir ser confirmado automaticamente.
-    console.error("criar-pagamento: INFINITEPAY_HANDLE/INFINITEPAY_WEBHOOK_SECRET não configurados");
+  if (!process.env.MERCADOPAGO_ACCESS_TOKEN) {
+    console.error("criar-pagamento: MERCADOPAGO_ACCESS_TOKEN não configurado");
     res.status(500).json({ error: "Pagamento online não está configurado no momento." });
     return;
   }
 
-  const { data: itensSalvos } = await supabase
-    .from("pedido_itens")
-    .select("nome, preco_unitario, quantidade")
-    .eq("pedido_id", pedido.id);
-
-  const items = (itensSalvos ?? []).map((i: any) => ({
-    quantity: i.quantidade,
-    price: Math.round(Number(i.preco_unitario) * 100),
-    description: String(i.nome).slice(0, 100),
-  }));
-  if (Number(pedido.frete) > 0) {
-    items.push({
-      quantity: 1,
-      price: Math.round(Number(pedido.frete) * 100),
-      description: "Frete",
-    });
-  }
-
-  const webhookUrl = `${siteUrl}/api/infinitepay-webhook?t=${webhookSecret}`;
-
   try {
-    const linkResponse = await fetch("https://api.checkout.infinitepay.io/links", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        handle,
-        order_nsu: pedido.order_nsu,
-        redirect_url: `${siteUrl}/pedido-realizado?order_nsu=${pedido.order_nsu}`,
-        webhook_url: webhookUrl,
-        items,
-        customer: {
-          name: cliente.nomeCompleto,
-          email: cliente.email,
-          phone_number: cliente.whatsapp,
-        },
-      }),
+    const pix = await criarPagamentoPix({
+      valor: Number(pedido.total),
+      descricao: `Pedido #${pedido.numero} — Plascotel`,
+      orderNsu: pedido.order_nsu,
+      notificationUrl: `${siteUrl}/api/mercadopago-webhook`,
+      cliente: { nomeCompleto: cliente.nomeCompleto, email: cliente.email, cpf: cliente.cpf },
     });
 
-    if (!linkResponse.ok) {
-      throw new Error(`infinitepay /links respondeu ${linkResponse.status}`);
-    }
-    const linkData = (await linkResponse.json()) as { url?: string };
-    if (!linkData.url) {
-      throw new Error("resposta da InfinitePay sem url");
-    }
+    // Guarda o id do pagamento no pedido AGORA — é assim que o webhook (e a
+    // tela do cliente, se ele recarregar a página) sabem a qual pedido esse
+    // pagamento do Mercado Pago pertence.
+    await supabase
+      .from("pedidos")
+      .update({ transaction_nsu: String(pix.id) })
+      .eq("id", pedido.id);
 
     res.status(200).json({
       id: pedido.id,
@@ -290,14 +261,16 @@ async function processarPagamento(req: VercelRequest, res: VercelResponse) {
       frete: Number(pedido.frete),
       total: Number(pedido.total),
       criadoEm: pedido.criado_em,
-      paymentUrl: linkData.url,
+      pixQrCode: pix.qrCode,
+      pixQrCodeBase64: pix.qrCodeBase64,
+      pixExpiraEm: pix.expiraEm,
     });
   } catch (err) {
-    console.error("criar-pagamento: erro ao gerar link InfinitePay", err);
+    console.error("criar-pagamento: erro ao gerar Pix no Mercado Pago", err);
     // O pedido já existe (aguardando_pagamento, com prazo de expiração) —
     // o cliente pode falar pelo WhatsApp informando o número do pedido.
     res.status(502).json({
-      error: "Pedido registrado, mas não foi possível abrir o pagamento agora.",
+      error: "Pedido registrado, mas não foi possível gerar o Pix agora.",
       numero: pedido.numero,
     });
   }

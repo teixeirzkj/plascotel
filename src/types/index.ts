@@ -79,6 +79,7 @@ export interface CustomerData {
   nomeCompleto: string;
   whatsapp: string;
   email: string;
+  cpf: string;
   cep: string;
   estado: string;
   cidade: string;
@@ -97,9 +98,11 @@ export interface Order {
   subtotal: number;
   frete: number;
   total: number;
-  formaPagamento: "infinitepay" | "whatsapp";
+  formaPagamento: "mercadopago" | "whatsapp";
   cliente: CustomerData;
   criadoEm: string;
-  /** Link de pagamento da InfinitePay, quando formaPagamento = "infinitepay". */
-  paymentUrl?: string;
+  /** QR code Pix (Mercado Pago), quando formaPagamento = "mercadopago". */
+  pixQrCode?: string;
+  pixQrCodeBase64?: string;
+  pixExpiraEm?: string | null;
 }

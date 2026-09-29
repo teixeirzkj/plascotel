@@ -151,7 +151,7 @@ export function gerarComprovantePedido(pedido: AdminOrder) {
 
   doc.setFont("helvetica", "normal");
   doc.setFontSize(10);
-  doc.text(`Forma de pagamento: ${pedido.formaPagamento === "infinitepay" ? "InfinitePay" : pedido.formaPagamento === "manual" ? "Venda balcão" : "WhatsApp"}`, margem, y);
+  doc.text(`Forma de pagamento: ${pedido.formaPagamento === "mercadopago" ? "Pix" : pedido.formaPagamento === "manual" ? "Venda balcão" : "WhatsApp"}`, margem, y);
   linha(5);
   doc.text(`Status: ${statusLabelPdf[pedido.status] ?? pedido.status}`, margem, y);
   if (pedido.valorPago != null) {

@@ -16,6 +16,7 @@ const initialCustomer: CustomerData = {
   nomeCompleto: "",
   whatsapp: "",
   email: "",
+  cpf: "",
   cep: "",
   estado: "",
   cidade: "",
@@ -31,7 +32,7 @@ export default function CheckoutPage() {
   const navigate = useNavigate();
 
   const [cliente, setCliente] = useState<CustomerData>(initialCustomer);
-  const [pagamento, setPagamento] = useState<"infinitepay" | "whatsapp">("infinitepay");
+  const [pagamento, setPagamento] = useState<"mercadopago" | "whatsapp">("mercadopago");
   const [loading, setLoading] = useState(false);
 
   const [buscandoEndereco, setBuscandoEndereco] = useState(false);
@@ -105,19 +106,13 @@ export default function CheckoutPage() {
       });
       setOrder(order);
       clear();
-
-      if (pagamento === "infinitepay" && order.paymentUrl) {
-        window.location.href = order.paymentUrl;
-        return;
-      }
-
       navigate(order.orderNsu ? `/pedido-realizado?order_nsu=${order.orderNsu}` : "/pedido-realizado");
     } catch (err: any) {
       if (err?.numero) {
         // O pedido chegou a ser criado (com prazo pra expirar sozinho se
-        // não for pago), só o link de pagamento não abriu.
+        // não for pago), só o Pix não foi gerado.
         alert(
-          `Seu pedido #${err.numero} foi registrado, mas não conseguimos abrir o pagamento da InfinitePay agora. Entre em contato pelo WhatsApp informando o número do pedido para combinarmos o pagamento.`
+          `Seu pedido #${err.numero} foi registrado, mas não conseguimos gerar o Pix agora. Entre em contato pelo WhatsApp informando o número do pedido para combinarmos o pagamento.`
         );
         navigate("/");
         return;
@@ -168,6 +163,17 @@ export default function CheckoutPage() {
                   className="input"
                 />
               </Field>
+              {pagamento === "mercadopago" && (
+                <Field label="CPF (necessário para gerar o Pix)">
+                  <input
+                    required
+                    placeholder="000.000.000-00"
+                    value={cliente.cpf}
+                    onChange={(e) => update("cpf", e.target.value)}
+                    className="input"
+                  />
+                </Field>
+              )}
             </div>
           </div>
 
@@ -247,7 +253,7 @@ export default function CheckoutPage() {
             <div className="flex flex-col gap-3">
               <label
                 className={`flex cursor-pointer items-center gap-2.5 rounded-xl border px-3 py-2.5 ${
-                  pagamento === "infinitepay"
+                  pagamento === "mercadopago"
                     ? "border-charcoal bg-wood-50"
                     : "border-sand"
                 }`}
@@ -255,11 +261,11 @@ export default function CheckoutPage() {
                 <input
                   type="radio"
                   name="pagamento"
-                  checked={pagamento === "infinitepay"}
-                  onChange={() => setPagamento("infinitepay")}
+                  checked={pagamento === "mercadopago"}
+                  onChange={() => setPagamento("mercadopago")}
                   className="h-4 w-4 accent-wood-700"
                 />
-                <p className="text-sm font-medium">Pagamento online</p>
+                <p className="text-sm font-medium">Pagamento online (Pix)</p>
               </label>
 
               <label

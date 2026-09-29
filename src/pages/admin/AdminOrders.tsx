@@ -39,9 +39,9 @@ function mesAtual() {
   return new Date().toISOString().slice(0, 7); // "AAAA-MM"
 }
 
-/** Pedido que chegou a ir pro InfinitePay mas nunca foi pago = carrinho abandonado. */
+/** Pedido que gerou Pix mas nunca foi pago = carrinho abandonado. */
 function ehCarrinhoAbandonado(p: AdminOrder) {
-  return p.formaPagamento === "infinitepay" && p.status === "cancelado";
+  return p.formaPagamento === "mercadopago" && p.status === "cancelado";
 }
 
 function paraCsv(pedidos: AdminOrder[]) {

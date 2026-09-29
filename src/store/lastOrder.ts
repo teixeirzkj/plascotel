@@ -8,10 +8,10 @@ interface LastOrderState {
 }
 
 /**
- * Precisa ficar salvo (não só em memória) porque o pagamento pela
- * InfinitePay leva o cliente pra fora do site — quando ele volta pelo
- * redirect_url, é uma página nova carregando do zero, e sem persistir
- * esse pedido a tela de confirmação ficaria vazia.
+ * Precisa ficar salvo (não só em memória) porque o cliente pode fechar/
+ * recarregar a aba de "pedido realizado" (ex: pra abrir o app do banco e
+ * escanear o QR code do Pix) — sem persistir esse pedido, a tela de
+ * confirmação ficaria vazia ao voltar.
  */
 export const useLastOrderStore = create<LastOrderState>()(
   persist(

@@ -449,7 +449,7 @@ create or replace function criar_pedido_seguro(
   p_itens jsonb,            -- [{ produto_id, variante_id, quantidade }]
   p_cliente jsonb,
   p_frete numeric,          -- já cotado/validado pelo servidor
-  p_forma_pagamento text    -- 'infinitepay' | 'whatsapp'
+  p_forma_pagamento text    -- 'mercadopago' | 'whatsapp'
 )
 returns table (
   id uuid,
@@ -481,7 +481,7 @@ declare
   v_status text;
   v_normalizados jsonb := '[]'::jsonb;
 begin
-  if p_forma_pagamento not in ('infinitepay', 'whatsapp') then
+  if p_forma_pagamento not in ('mercadopago', 'whatsapp') then
     raise exception 'Forma de pagamento inválida.';
   end if;
 
@@ -553,7 +553,7 @@ begin
   end loop;
 
   v_status := case
-    when p_forma_pagamento = 'infinitepay' then 'aguardando_pagamento'
+    when p_forma_pagamento = 'mercadopago' then 'aguardando_pagamento'
     else 'novo'
   end;
 
