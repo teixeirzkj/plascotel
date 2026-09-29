@@ -35,6 +35,7 @@ export default function CheckoutPage() {
   const [pagamento, setPagamento] = useState<"mercadopago" | "whatsapp">("mercadopago");
   const [loading, setLoading] = useState(false);
 
+  const [pedidoConcluido, setPedidoConcluido] = useState(false);
   const [buscandoEndereco, setBuscandoEndereco] = useState(false);
   const [calculandoFrete, setCalculandoFrete] = useState(false);
   const [erroFrete, setErroFrete] = useState<string | null>(null);
@@ -48,7 +49,10 @@ export default function CheckoutPage() {
   const frete = freteOpcaoSelecionada ? freteOpcaoSelecionada.preco : freteFallback;
   const total = sub + frete;
 
-  if (items.length === 0) return <Navigate to="/carrinho" replace />;
+  // "pedidoConcluido" evita que, ao limpar o carrinho logo após finalizar a
+  // compra, esse guard capture o carrinho já vazio e redirecione de volta
+  // pra "/carrinho" numa corrida com o navigate() pra tela de confirmação.
+  if (items.length === 0 && !pedidoConcluido) return <Navigate to="/carrinho" replace />;
 
   function update<K extends keyof CustomerData>(key: K, value: CustomerData[K]) {
     setCliente((c) => ({ ...c, [key]: value }));
@@ -105,6 +109,7 @@ export default function CheckoutPage() {
         freteOpcaoId: freteSelecionadoId,
       });
       setOrder(order);
+      setPedidoConcluido(true);
       clear();
       navigate(order.orderNsu ? `/pedido-realizado?order_nsu=${order.orderNsu}` : "/pedido-realizado");
     } catch (err: any) {
