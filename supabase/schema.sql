@@ -412,6 +412,10 @@ alter table pedidos add column if not exists valor_pago numeric(10, 2);
 alter table pedidos add column if not exists pago_em timestamptz;
 alter table pedidos add column if not exists expira_em timestamptz;
 alter table pedidos add column if not exists codigo_rastreio text;
+-- Marca quando o e-mail de "carrinho abandonado" foi mandado pra esse
+-- pedido — evita mandar de novo toda vez que o job diário rodar (ver
+-- api/enviar-lembretes-carrinho.ts).
+alter table pedidos add column if not exists lembrete_carrinho_enviado_em timestamptz;
 
 -- Tempo real: o painel admin escuta pedidos novos sem precisar dar refresh.
 -- A tabela já é protegida por RLS (pedidos_admin_all), então só quem estiver

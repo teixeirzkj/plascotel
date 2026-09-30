@@ -14,5 +14,8 @@
         { "key": "Content-Security-Policy", "value": "frame-ancestors 'none'" }
       ]
     }
+  ],
+  "crons": [
+    { "path": "/api/enviar-lembretes-carrinho", "schedule": "0 15 * * *" }
   ]
 }

@@ -204,7 +204,30 @@ nenhum `dangerouslySetInnerHTML` nem outro vetor de XSS conhecido hoje, o
 risco prático é baixo — fica registrado aqui como trade-off consciente,
 não esquecido.
 
-## 8. Variáveis de ambiente (visão geral)
+## 8. Lembrete de carrinho abandonado por e-mail
+
+Todo dia (`vercel.json` → `crons`, meio-dia horário de Brasília), o job
+`api/enviar-lembretes-carrinho.ts` procura pedidos de Pix (Mercado Pago)
+que expiraram sem pagar (mesmo critério de "carrinho abandonado" já usado
+no admin) e manda um e-mail lembrando o cliente, com os itens do pedido e
+um botão pra voltar à loja (mais o link do WhatsApp, se configurado). Cada
+pedido só recebe um lembrete (`lembrete_carrinho_enviado_em` marca que já
+foi processado, com ou sem sucesso).
+
+Usa a API do [Resend](https://resend.com) (chamada direto por `fetch`, sem
+SDK) — precisa de:
+1. Uma conta no Resend e um **domínio verificado** lá (Domains → Add
+   Domain, adicionar os registros DNS que eles pedem). Sem isso, o Resend
+   só entrega e-mail pro dono da conta, não pros clientes de verdade.
+2. `RESEND_API_KEY` (gerada em resend.com/api-keys) e `RESEND_FROM_EMAIL`
+   (ex: `Plascotel <contato@plascotel.com.br>`) na Vercel.
+3. `CRON_SECRET` — protege o endpoint (a própria Vercel manda esse valor
+   automaticamente no header `Authorization` quando o cron dispara).
+
+O job em si não trava nada se essas variáveis não estiverem configuradas
+ainda — só fica sem enviar (loga o erro), não quebra o resto do site.
+
+## 9. Variáveis de ambiente (visão geral)
 
 Configuradas na Vercel (Project Settings → Environment Variables) — ver
 `.env.example` pro texto completo de cada uma:
@@ -220,11 +243,13 @@ Configuradas na Vercel (Project Settings → Environment Variables) — ver
 | `MELHOR_ENVIO_CEP_ORIGEM` | CEP de onde a loja despacha |
 | `LOJA_CIDADE_ORIGEM` / `LOJA_ESTADO_ORIGEM` | Pra decidir frete grátis local |
 | `N8N_PEDIDO_PAGO_URL` | (opcional) notifica um workflow n8n quando um pedido é pago |
+| `RESEND_API_KEY` / `RESEND_FROM_EMAIL` | Lembrete de carrinho abandonado por e-mail |
+| `CRON_SECRET` | Protege o job diário de lembrete de carrinho |
 
 Variáveis órfãs que podem ser apagadas da Vercel (não são mais usadas):
 `INFINITEPAY_HANDLE`, `INFINITEPAY_WEBHOOK_SECRET`.
 
-## 9. Pendências / próximos passos
+## 10. Pendências / próximos passos
 
 - [ ] Trocar as credenciais do Mercado Pago pela conta real da cliente
       (ver seção 5, "Contas de teste").
@@ -241,6 +266,10 @@ Variáveis órfãs que podem ser apagadas da Vercel (não são mais usadas):
 - [ ] Se quiser um Content-Security-Policy completo (script/style/img por
       domínio), precisa mapear todos os recursos externos e testar em
       navegador de verdade (ver seção 7).
+- [ ] Criar conta no Resend, verificar o domínio do e-mail da loja e
+      configurar `RESEND_API_KEY`/`RESEND_FROM_EMAIL`/`CRON_SECRET` na
+      Vercel — sem isso, o lembrete de carrinho abandonado (seção 8) fica
+      pronto no código mas não envia nada de verdade.
 
 ---
 
