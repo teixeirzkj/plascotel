@@ -22,6 +22,21 @@ import { consultarPagamento } from "./_lib/mercadoPago.js";
  *     valida o header x-signature (HMAC-SHA256) antes de aceitar a chamada.
  */
 
+/**
+ * Compara duas strings sem vazar o tempo de execução (o que uma
+ * comparação `===`/`!==` normal faria, já que ela para no primeiro
+ * caractere diferente). Faz HMAC dos dois lados antes de comparar — assim
+ * o buffer sempre tem o mesmo tamanho (32 bytes), sem precisar de um
+ * `if (tamanhos diferentes) return false` antecipado, que também vazaria
+ * (ainda que pouco) informação por tempo de resposta.
+ */
+function comparacaoSegura(a: string, b: string): boolean {
+  const chave = "comparacaoSegura";
+  const hashA = createHmac("sha256", chave).update(a).digest();
+  const hashB = createHmac("sha256", chave).update(b).digest();
+  return timingSafeEqual(hashA, hashB);
+}
+
 /** https://www.mercadopago.com.br/developers/en/docs/your-integrations/notifications/webhooks */
 function assinaturaValida(req: VercelRequest, dataId: string, secret: string): boolean {
   const xSignature = req.headers["x-signature"];
@@ -39,11 +54,7 @@ function assinaturaValida(req: VercelRequest, dataId: string, secret: string): b
 
   const manifest = `id:${dataId};request-id:${xRequestId};ts:${ts};`;
   const hashCalculado = createHmac("sha256", secret).update(manifest).digest("hex");
-
-  const bufferCalculado = Buffer.from(hashCalculado, "hex");
-  const bufferRecebido = Buffer.from(v1, "hex");
-  if (bufferCalculado.length !== bufferRecebido.length) return false;
-  return timingSafeEqual(bufferCalculado, bufferRecebido);
+  return comparacaoSegura(hashCalculado, v1);
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -53,7 +64,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     res.status(500).json({ error: "webhook não configurado" });
     return;
   }
-  if (req.query.t !== segredoEsperado) {
+  if (typeof req.query.t !== "string" || !comparacaoSegura(req.query.t, segredoEsperado)) {
     res.status(404).end();
     return;
   }

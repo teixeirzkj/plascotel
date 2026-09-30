@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { cotarFrete, limparCep, type ItemFrete } from "./_lib/frete.js";
+import { obterIpCliente, permitirRequisicao } from "./_lib/rateLimit.js";
 
 /**
  * Calcula o frete para EXIBIR opções ao cliente no checkout. O valor
@@ -9,6 +10,14 @@ import { cotarFrete, limparCep, type ItemFrete } from "./_lib/frete.js";
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "POST") {
     res.status(405).json({ error: "Método não permitido." });
+    return;
+  }
+
+  // Evita automação abusiva gastando a cota da API do Melhor Envio.
+  const ip = obterIpCliente(req);
+  const permitido = await permitirRequisicao(`frete:${ip}`, 20, 60);
+  if (!permitido) {
+    res.status(429).json({ error: "Muitas tentativas. Aguarde um minuto e tente novamente." });
     return;
   }
 

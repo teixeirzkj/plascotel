@@ -795,6 +795,63 @@ create table if not exists integracoes_tokens (
 alter table integracoes_tokens enable row level security;
 
 -- ---------------------------------------------------------
+-- Rate limit das funções serverless públicas (api/criar-pagamento.ts,
+-- api/frete.ts) — sem isso, qualquer um pode automatizar chamadas pra
+-- gastar cota da API do Mercado Pago/Melhor Envio ou criar vários pedidos
+-- "aguardando_pagamento" seguidos, que descontam estoque de verdade por
+-- até 30 min cada. RLS ligado e sem políticas: só o service_role (usado
+-- dentro das funções serverless) grava/lê aqui.
+-- ---------------------------------------------------------
+
+create table if not exists rate_limit_hits (
+  chave text not null,
+  criado_em timestamptz not null default now()
+);
+
+create index if not exists rate_limit_hits_chave_criado_em_idx
+  on rate_limit_hits (chave, criado_em);
+
+alter table rate_limit_hits enable row level security;
+
+-- Registra uma tentativa e diz se ela deve ser permitida (true) ou
+-- bloqueada (false) — "limite" tentativas a cada "janela_segundos" pra
+-- essa "chave" (ex: "criar-pagamento:200.1.2.3"). Também aproveita pra
+-- limpar registros velhos, então a tabela não cresce sem limite.
+create or replace function registrar_rate_limit(
+  p_chave text,
+  p_limite integer,
+  p_janela_segundos integer
+)
+returns boolean
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_contagem integer;
+begin
+  delete from rate_limit_hits
+  where criado_em < now() - make_interval(secs => p_janela_segundos);
+
+  select count(*) into v_contagem
+  from rate_limit_hits
+  where chave = p_chave
+    and criado_em > now() - make_interval(secs => p_janela_segundos);
+
+  if v_contagem >= p_limite then
+    return false;
+  end if;
+
+  insert into rate_limit_hits (chave) values (p_chave);
+  return true;
+end;
+$$;
+
+revoke all on function registrar_rate_limit(text, integer, integer) from public;
+revoke all on function registrar_rate_limit(text, integer, integer) from anon;
+grant execute on function registrar_rate_limit(text, integer, integer) to service_role;
+
+-- ---------------------------------------------------------
 -- Dados iniciais (opcional): descomente para popular o banco com os
 -- mesmos produtos de exemplo usados no site antes de conectar o banco.
 -- ---------------------------------------------------------

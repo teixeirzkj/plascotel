@@ -157,7 +157,54 @@ plano gratuito da Vercel), a função é chamada **de forma oportunista**:
   a expiração — o pedido vira "cancelado" e o estoque volta sozinho (via
   gatilho já existente `trg_restaurar_estoque`).
 
-## 7. Variáveis de ambiente (visão geral)
+## 7. Revisão de segurança (checklist "Vibe Code Security")
+
+Rodada uma revisão completa contra um checklist padrão de segurança
+(secrets, pagamento, upload, RLS, rate limit, injections, headers). O que
+já estava certo: nenhum segredo hardcoded/commitado, preço sempre decidido
+no servidor, RLS habilitado em toda tabela sensível, webhook sempre
+reconsulta a fonte oficial antes de confirmar, sem SQL concatenado, sem
+`dangerouslySetInnerHTML`, sourcemaps desligados em produção.
+
+Pontos corrigidos nessa revisão:
+
+- **Upload de imagem** (`src/lib/storage.ts`): agora valida o tipo real do
+  arquivo pelos **magic bytes** (assinatura binária), não só pelo
+  `file.type` do navegador (que é fácil de forjar renomeando o arquivo).
+  Limite de 8 MB. O bucket do Supabase (`supabase/storage.sql`) também
+  ganhou `allowed_mime_types`/`file_size_limit` — reforça no servidor
+  mesmo que alguém pule a validação do navegador chamando a Storage API
+  direto.
+- **Rate limit** (`api/_lib/rateLimit.ts`, novo): `api/criar-pagamento.ts`
+  (8 tentativas/min por IP) e `api/frete.ts` (20/min por IP) agora recusam
+  automação abusiva. Implementado com uma tabela simples no próprio
+  Supabase (`rate_limit_hits` + função `registrar_rate_limit`), sem
+  precisar de um serviço externo (Redis/Upstash).
+- **Validação de schema** (`zod`, novo pacote): `api/criar-pagamento.ts`
+  passou a validar o corpo da requisição com schema (tamanho máximo de
+  campos, formato de e-mail, etc) em vez de só checar presença.
+- **Segurança dos headers HTTP** (`vercel.json`): adicionado
+  `X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`,
+  `Strict-Transport-Security`, `Permissions-Policy` e um
+  `Content-Security-Policy: frame-ancestors 'none'` (proteção básica
+  contra clickjacking). **Não foi adicionado um CSP completo** (restringindo
+  scripts/estilos/imagens por domínio) — isso exigiria mapear todo recurso
+  externo que o site carrega e testar em navegador de verdade pra não
+  quebrar nada sem querer; fica como próximo passo se quiser esse nível.
+- **Comparação do segredo do webhook** (`api/mercadopago-webhook.ts`):
+  trocado `!==` simples por comparação "timing-safe" (via HMAC +
+  `timingSafeEqual`), mesmo padrão que já era usado só na validação da
+  assinatura.
+
+**Não corrigido de propósito**: a sessão do admin (Supabase Auth) usa
+`localStorage` por padrão — a alternativa (cookie `HttpOnly`) exigiria
+reformular o painel admin inteiro pra passar por um backend próprio (BFF)
+em vez de chamar o Supabase direto do navegador. Como o app não tem
+nenhum `dangerouslySetInnerHTML` nem outro vetor de XSS conhecido hoje, o
+risco prático é baixo — fica registrado aqui como trade-off consciente,
+não esquecido.
+
+## 8. Variáveis de ambiente (visão geral)
 
 Configuradas na Vercel (Project Settings → Environment Variables) — ver
 `.env.example` pro texto completo de cada uma:
@@ -177,7 +224,7 @@ Configuradas na Vercel (Project Settings → Environment Variables) — ver
 Variáveis órfãs que podem ser apagadas da Vercel (não são mais usadas):
 `INFINITEPAY_HANDLE`, `INFINITEPAY_WEBHOOK_SECRET`.
 
-## 8. Pendências / próximos passos
+## 9. Pendências / próximos passos
 
 - [ ] Trocar as credenciais do Mercado Pago pela conta real da cliente
       (ver seção 5, "Contas de teste").
@@ -191,7 +238,10 @@ Variáveis órfãs que podem ser apagadas da Vercel (não são mais usadas):
 - [ ] Confirmar `LOJA_CIDADE_ORIGEM`/`LOJA_ESTADO_ORIGEM` batem exatamente
       com o que o ViaCEP devolve pra cidade da loja (comparação é
       case/acento-insensitive, mas precisa do nome certo).
+- [ ] Se quiser um Content-Security-Policy completo (script/style/img por
+      domínio), precisa mapear todos os recursos externos e testar em
+      navegador de verdade (ver seção 7).
 
 ---
 
-*Última atualização: 2026-09-29.*
+*Última atualização: 2026-09-30.*

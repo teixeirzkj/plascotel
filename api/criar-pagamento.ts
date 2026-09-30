@@ -1,7 +1,9 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { createClient } from "@supabase/supabase-js";
+import { z } from "zod";
 import { cotarFrete, fretePadraoPara, limparCep, type ItemFrete } from "./_lib/frete.js";
 import { criarPagamentoPix } from "./_lib/mercadoPago.js";
+import { obterIpCliente, permitirRequisicao } from "./_lib/rateLimit.js";
 
 /**
  * Cria o pedido E (se for pagamento online) o Pix — tudo decidido AQUI, no
@@ -13,25 +15,38 @@ import { criarPagamentoPix } from "./_lib/mercadoPago.js";
  *   SUPABASE_SERVICE_ROLE_KEY, MERCADOPAGO_ACCESS_TOKEN, SITE_URL
  */
 
-interface ItemPedidoBody {
-  produtoId: string;
-  varianteId?: string | null;
-  quantidade: number;
-}
+const itemSchema = z.object({
+  produtoId: z.string().min(1),
+  varianteId: z.string().min(1).nullable().optional(),
+  quantidade: z.coerce.number().int().min(1).max(50),
+});
 
-interface ClienteBody {
-  nomeCompleto: string;
-  whatsapp: string;
-  email: string;
-  cpf?: string;
-  cep: string;
-  estado: string;
-  cidade: string;
-  bairro: string;
-  rua: string;
-  numero: string;
-  complemento?: string;
-}
+const clienteSchema = z.object({
+  nomeCompleto: z.string().trim().min(1).max(200),
+  whatsapp: z.string().trim().min(1).max(30),
+  email: z.string().trim().email().max(200),
+  cpf: z.string().trim().max(20).optional(),
+  cep: z.string().trim().min(1).max(15),
+  estado: z.string().trim().min(1).max(60),
+  cidade: z.string().trim().min(1).max(120),
+  bairro: z.string().trim().min(1).max(120),
+  rua: z.string().trim().min(1).max(200),
+  numero: z.string().trim().min(1).max(20),
+  complemento: z.string().trim().max(200).optional(),
+});
+
+const bodySchema = z
+  .object({
+    itens: z.array(itemSchema).min(1, "Carrinho vazio."),
+    cliente: clienteSchema,
+    formaPagamento: z.enum(["mercadopago", "whatsapp"]),
+    cepDestino: z.string().trim().optional(),
+    freteOpcaoId: z.coerce.number().int().nullable().optional(),
+  })
+  .refine((data) => data.formaPagamento !== "mercadopago" || !!data.cliente.cpf?.trim(), {
+    message: "Informe o CPF para gerar o Pix.",
+    path: ["cliente", "cpf"],
+  });
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "POST") {
@@ -54,6 +69,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 }
 
 async function processarPagamento(req: VercelRequest, res: VercelResponse) {
+  // Evita automação abusiva (gastar cota da API do Mercado Pago, ou criar
+  // vários pedidos seguidos que reservam estoque de verdade por 30 min).
+  const ip = obterIpCliente(req);
+  const permitido = await permitirRequisicao(`criar-pagamento:${ip}`, 8, 60);
+  if (!permitido) {
+    res.status(429).json({ error: "Muitas tentativas. Aguarde um minuto e tente novamente." });
+    return;
+  }
+
   const supabaseUrl = process.env.VITE_SUPABASE_URL;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!supabaseUrl || !serviceRoleKey) {
@@ -68,43 +92,13 @@ async function processarPagamento(req: VercelRequest, res: VercelResponse) {
   // o painel admin.
   await supabase.rpc("expirar_pedidos_pendentes");
 
-  const body = (req.body ?? {}) as {
-    itens?: ItemPedidoBody[];
-    cliente?: ClienteBody;
-    formaPagamento?: "mercadopago" | "whatsapp";
-    cepDestino?: string;
-    freteOpcaoId?: number | null;
-  };
-
-  const itensBrutos = Array.isArray(body.itens) ? body.itens : [];
-  const cliente = body.cliente;
-  const formaPagamento = body.formaPagamento;
-
-  if (itensBrutos.length === 0) {
-    res.status(400).json({ error: "Carrinho vazio." });
+  const parsed = bodySchema.safeParse(req.body ?? {});
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.issues[0]?.message || "Dados inválidos." });
     return;
   }
-  if (formaPagamento !== "mercadopago" && formaPagamento !== "whatsapp") {
-    res.status(400).json({ error: "Forma de pagamento inválida." });
-    return;
-  }
-  if (
-    !cliente?.nomeCompleto ||
-    !cliente?.whatsapp ||
-    !cliente?.email ||
-    !cliente?.rua ||
-    !cliente?.numero ||
-    !cliente?.cidade ||
-    !cliente?.estado ||
-    !cliente?.cep
-  ) {
-    res.status(400).json({ error: "Preencha todos os dados obrigatórios." });
-    return;
-  }
-  if (formaPagamento === "mercadopago" && !cliente.cpf) {
-    res.status(400).json({ error: "Informe o CPF para gerar o Pix." });
-    return;
-  }
+  const { itens: itensBrutos, cliente, formaPagamento } = parsed.data;
+  const body = parsed.data;
 
   // Busca preço/peso/dimensões de cada item DIRETO NO BANCO — o corpo da
   // requisição só tem produtoId/varianteId/quantidade.
