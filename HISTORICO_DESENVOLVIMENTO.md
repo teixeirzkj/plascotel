@@ -249,7 +249,34 @@ Configuradas na Vercel (Project Settings → Environment Variables) — ver
 Variáveis órfãs que podem ser apagadas da Vercel (não são mais usadas):
 `INFINITEPAY_HANDLE`, `INFINITEPAY_WEBHOOK_SECRET`.
 
-## 10. Pendências / próximos passos
+## 10. Carga de produtos no catálogo (2026-10-10)
+
+Cadastrados por script direto no Supabase (REST + service role, a partir de
+uma planilha de 38 linhas), sem passar pelo painel admin:
+
+- **21 produtos novos / 39 variações** (cor + tamanho, preço próprio em
+  cada uma), mais 3 variações novas no "Jogo de cama Toque de Seda -
+  Jolitex Ternille" que já existia. Totais após a carga: 37 produtos,
+  105 variações.
+- Categorias novas: **Cozinha** e **Pijamas**. Itens de "Cama" entraram
+  na "Cama, Mesa e Banho" existente.
+- Convenções usadas: estoque inicial **5 por variação**; `preco`/`estoque`
+  do produto base = menor preço / soma das variações (mesmo padrão dos
+  produtos já cadastrados); tamanho "Único" vira variação só por cor.
+- Pijamas: regra de preço dada pela cliente — **regata/alça R$ 49,90,
+  camiseta/camisetão R$ 69,90**; todos marcados como 100% algodão.
+
+**Incompletos (ajustar no admin em `/admin/produtos`):**
+- Nenhum produto da carga tem **foto** — aparecem só com o nome no quadro
+  bege até subir as imagens.
+- "Lençol com elástico Priori - Döhler" tamanho **King está sem cor**
+  (planilha pedia confirmar).
+- "Camisetão margarida" sem cor (planilha pedia confirmar foto).
+- "Pijama manga curta margarida" e "Pijama manga curta love" estão **sem
+  tamanho e com estoque 0** de propósito (não vendem até definir o tamanho
+  e o estoque no admin).
+
+## 11. Pendências / próximos passos
 
 - [ ] Trocar as credenciais do Mercado Pago pela conta real da cliente
       (ver seção 5, "Contas de teste").
@@ -270,7 +297,11 @@ Variáveis órfãs que podem ser apagadas da Vercel (não são mais usadas):
       configurar `RESEND_API_KEY`/`RESEND_FROM_EMAIL`/`CRON_SECRET` na
       Vercel — sem isso, o lembrete de carrinho abandonado (seção 8) fica
       pronto no código mas não envia nada de verdade.
+- [ ] Subir as fotos dos 21 produtos da carga de 2026-10-10 (seção 10).
+- [ ] Definir cor do Lençol Priori King e do Camisetão margarida; definir
+      tamanho + estoque dos dois pijamas "manga curta" que entraram
+      esgotados (seção 10).
 
 ---
 
-*Última atualização: 2026-09-30.*
+*Última atualização: 2026-10-10.*
