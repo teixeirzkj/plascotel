@@ -301,6 +301,33 @@ estampas, porta-travesseiro Camesa com 6 modelos/cores).
   imagens certas depois). A leitura completa, foto a foto, está em
   `scratchpad/leitura-fotos.md` da sessão — não faz parte do repositório.
 
+### Fotos e itens dos prints (tarde de 2026-10-17)
+
+A cliente passou a mandar fotos (Google) de produto em produto, pela pasta
+Downloads. Com scripts auxiliares (criar produto com fotos / adicionar
+variação / anexar fotos em variação existente), as fotos foram subidas pro
+bucket `imagens` e vinculadas:
+
+- **Com foto agora:** Lençol Algodão Lux Altenburg (2 cores), Cortina Alfa
+  Camesa, Capa Capri Adomes (3 variações), Capa Boa Esperança Jackson (Preto
+  e Marrom — "Laranja" foi renomeada pra Marrom a pedido), Roupão Kids Döhler
+  (Dino M e The Explorer P — o "G" foi removido: a cliente só tem P).
+- **Criados com foto, mas sem preço (R$ 0 / estoque 0 até vir o valor):**
+  rolinho Plaza Lavive, porta-travesseiro Abraço Plaza Lavive (3 cores),
+  almofada em rolo Altenburg, cobertor LK 4S Jolitex (grafite/rosa), jogo
+  Döhler Percal 130 Queen "Palmira Florido", jogo Döhler Provença King
+  "Valesca" (esse sem foto: vieram miniaturas), capa Edromania creme, toalha
+  poncho Kids Döhler, roupão adulto Velour grafite G.
+- **Estoque padrão passou a ser 20** em todas as variações com preço
+  (pedido da cliente, inclusive nos produtos antigos). Totais: 59 produtos,
+  160 variações.
+
+Faltam ainda: preços dos itens acima; Corttex Percal (Casal/King), roupão
+branco P, jogo Slim Casal, cortina Voil Santorini e lençol Gold Bari de
+R$ 130,50 (sem tamanho) continuam **fora** do catálogo; e a maior parte dos
+produtos das cargas anteriores segue sem foto. A cliente vai mandar fotos
+organizadas com nomes e preços depois.
+
 ## 11. Pendências / próximos passos
 
 - [ ] Trocar as credenciais do Mercado Pago pela conta real da cliente
@@ -322,10 +349,14 @@ estampas, porta-travesseiro Camesa com 6 modelos/cores).
       configurar `RESEND_API_KEY`/`RESEND_FROM_EMAIL`/`CRON_SECRET` na
       Vercel — sem isso, o lembrete de carrinho abandonado (seção 8) fica
       pronto no código mas não envia nada de verdade.
-- [ ] Subir as fotos dos 21 produtos da carga de 2026-10-10 (seção 10).
+- [ ] Fotos: ainda faltam em quase todos os produtos das cargas de 10/10
+      e na maioria dos de 17/10 (ver seção 10); a cliente vai mandar
+      organizadas, com nome e preço.
+- [ ] Preços dos 9 produtos cadastrados a R$ 0 (seção 10) — ao receber,
+      colocar preço e estoque 20.
 - [ ] Definir cor do Lençol Priori King e do Camisetão margarida; definir
-      tamanho + estoque dos dois pijamas "manga curta" que entraram
-      esgotados (seção 10).
+      tamanho dos dois pijamas "manga curta" (hoje estão à venda com
+      estoque 20 sem tamanho, porque a cliente pediu 20 em tudo).
 
 ---
 
