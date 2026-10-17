@@ -276,6 +276,31 @@ uma planilha de 38 linhas), sem passar pelo painel admin:
   tamanho e com estoque 0** de propósito (não vendem até definir o tamanho
   e o estoque no admin).
 
+### Segunda carga — a partir de fotos (2026-10-17)
+
+A cliente mandou 94 fotos (`Downloads/produtos`): embalagens com etiqueta
+de preço da loja e alguns prints de pesquisa no Google/Mercado Livre. As
+fotos foram lidas uma a uma; frente/verso do mesmo item foram juntadas e
+estampas do mesmo produto viraram variações (ex.: Colcha Garden King com 6
+estampas, porta-travesseiro Camesa com 6 modelos/cores).
+
+- Cadastrados **14 produtos / 42 variações** só com preço legível na
+  etiqueta (estoque 5 por variação, mesmas convenções da carga anterior).
+  Totais após: 51 produtos, 147 variações.
+- Categoria nova: **Decoração** (cortinas Camesa e Adomes).
+- Ficaram **de fora, aguardando confirmação da cliente**: itens com
+  etiqueta ilegível ou sem etiqueta (Corttex Percal Casal/King, capa
+  Edromania creme, toalha poncho Döhler, roupão kids Explorer P, roupão
+  adulto branco P e cinza, jogo Slim Casal, cortina Voil Santorini, jogo
+  Döhler Priori "Vivian", um lençol Gold Bari de R$ 130,50 sem tamanho) e
+  os itens vindos de **prints** (rolinho Plaza, porta-travesseiro Abraço
+  Plaza Lavive, almofada em rolo Altenburg, cobertor LK4s, jogos Döhler
+  "Palmira Florido" e "Provença Valesca") — nos prints o preço mostrado é
+  de outra loja, não serve como preço de venda.
+- Nenhum item dessa carga tem foto no catálogo (a cliente vai procurar as
+  imagens certas depois). A leitura completa, foto a foto, está em
+  `scratchpad/leitura-fotos.md` da sessão — não faz parte do repositório.
+
 ## 11. Pendências / próximos passos
 
 - [ ] Trocar as credenciais do Mercado Pago pela conta real da cliente
@@ -304,4 +329,4 @@ uma planilha de 38 linhas), sem passar pelo painel admin:
 
 ---
 
-*Última atualização: 2026-10-10.*
+*Última atualização: 2026-10-17.*
