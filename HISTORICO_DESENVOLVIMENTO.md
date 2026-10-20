@@ -328,6 +328,26 @@ R$ 130,50 (sem tamanho) continuam **fora** do catálogo; e a maior parte dos
 produtos das cargas anteriores segue sem foto. A cliente vai mandar fotos
 organizadas com nomes e preços depois.
 
+### Sessão de 2026-10-19 (fotos + nomes oficiais das estampas)
+
+- **Roupão adulto Velour - Döhler**: todas as variações com foto; criada a
+  Branco / P (sem preço).
+- **Colcha Evolution Patchwork Queen - Camesa**: as 7 estampas ganharam
+  foto e os **nomes oficiais** passados pela cliente (Botanique — foto
+  principal do produto —, Brisa Luna, Nara, Verde Floral, Floral
+  Versailles, Flores Azul, Floral Vermelho), no lugar dos nomes descritivos
+  que eu tinha dado pelas fotos da embalagem.
+- **Colcha Garden King - Camesa**: idem — Verde, Flores Azul, Melida, Arya,
+  Diva, Ayama.
+- **Jogo de cama Slim em malha - Edromania**: variação Casal Floral azul
+  criada (sem preço), descrição passou a cobrir King e Casal.
+- **Jogo de cama Percal 180 fios 4 peças - Corttex**: produto novo, Floral
+  rosas / King, com foto, sem preço (etiqueta ilegível). O Casal geométrico
+  cinza das fotos de 17/10 ainda não entrou.
+- Fotos em `.avif` (formato que o Google às vezes entrega) não são aceitas
+  pelo bucket nem legíveis aqui — foram convertidas pra JPEG com a lib
+  `sharp` antes de subir.
+
 ## 11. Pendências / próximos passos
 
 - [ ] Trocar as credenciais do Mercado Pago pela conta real da cliente
@@ -360,4 +380,4 @@ organizadas com nomes e preços depois.
 
 ---
 
-*Última atualização: 2026-10-17.*
+*Última atualização: 2026-10-19.*
