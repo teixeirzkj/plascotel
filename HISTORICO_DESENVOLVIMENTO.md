@@ -379,6 +379,14 @@ Serena (480 ou 680), tamanho/tipo da Döhler Romance de 36,00, se a toalha
 Lapa de 112,95 é mesmo "terracota" (parece branca), se o Buddemeyer
 egípcio branco é 159,89 como as outras cores, e os 21 itens sem etiqueta.
 
+No mesmo dia, fotos do Google (via Downloads) anexadas em: Edromania
+lençol King (Rosa e Turquesa — a cliente chamou a turquesa de "amarelo";
+Amarelo segue sem foto), Cortina Voil Santorini (foto de produto), Cortina
+Malta Bege, Gold 180 Bari, Porta-travesseiro Camesa (6 variações + nova
+**Arya Branco** a R$ 24,44, mesmo preço das outras — confirmar). Criado
+**Jogo de cama Priori 4 peças Casal - Döhler** (estampa Vivian, pendente
+desde 17/10) com foto e sem preço.
+
 ## 11. Pendências / próximos passos
 
 - [ ] Trocar as credenciais do Mercado Pago pela conta real da cliente
