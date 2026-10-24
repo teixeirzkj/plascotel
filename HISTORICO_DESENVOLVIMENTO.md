@@ -394,6 +394,20 @@ Lapa é terracota mesmo, Buddemeyer egípcio **Branco 112,95** (as outras
 cores 159,89), Jolitex Premium **Casal 128,17** (era 114,17) e almofada
 chevron **32,38** nas 3 cores — tudo com estoque 20.
 
+A cliente também mandou um **PDF de "Ajuste de Preço de Nota de Compra"
+da Jolitex** (nota 255099, 01/10/2026) com os preços de venda — fonte
+mais confiável que etiqueta de prateleira. Dele entraram: produto novo
+**Jogo de cama Toque de Seda Bordado Inglês 4 peças - Jolitex Ternille**
+(Fendi Casal 147,74 / Branco Rosê Queen 172,48 / Branco Bege King 187,65)
+e 6 estampas novas no "Jogo de cama Toque de Seda - Jolitex Ternille" já
+existente (Triângulos cinza, Riscado cinza, Linhas cinza/branco, Íris
+branco), com o número de peças no campo tamanho ("Casal 3 pç", "Casal 4
+pç"…) — as 4 variações da planilha de 10/10 ganharam o mesmo formato. O
+Glacial 56,12 da nota já estava cadastrado. **Dúvida**: as estampas
+"Floral rosa/branco" e "Geométrico azul/branco" da planilha de 10/10 têm
+os mesmos preços das da nota (92,26 / 106,80 / 70,71) — podem ser as
+mesmas peças com outro nome; confirmar com a cliente pra não duplicar.
+
 ## 11. Pendências / próximos passos
 
 - [ ] Trocar as credenciais do Mercado Pago pela conta real da cliente
