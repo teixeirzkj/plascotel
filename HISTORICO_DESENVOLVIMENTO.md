@@ -348,6 +348,37 @@ organizadas com nomes e preços depois.
   pelo bucket nem legíveis aqui — foram convertidas pra JPEG com a lib
   `sharp` antes de subir.
 
+### Terceira carga — fotos da loja em `produtos2/` (2026-10-24)
+
+A cliente deixou 103 fotos novas (embalagens com etiqueta de preço, tiradas
+na loja) na pasta `PLASCOTEL/produtos2` — pasta adicionada ao
+`.gitignore` junto com `produtos/` (são centenas de MB; as fotos sobem pro
+Storage, nunca pro repositório). Nenhuma foto foi usada no catálogo
+(são fotos de prateleira; a cliente manda as boas depois).
+
+- **28 produtos novos / 46 variações** (totais: 88 produtos, 208
+  variações). 25 variações com preço legível entraram com estoque 20; 21
+  sem etiqueta entraram a R$ 0 / estoque 0.
+- Novidades de categoria: muita **Decoração** (cortinas Döhler Messina,
+  Nature em 2 tamanhos, Blackout 4,30 e Decora 3,00, Tularte Chicago, Voil
+  Santorini Adomes em rosa e branco, Renove), **banho** (jogos Buddemeyer
+  fibra longa e algodão egípcio, toalhas Döhler Romance/Marie/Air Touch,
+  Mafratex Hotel Suíte, banhão Lapa), saias box Jolitex Square e
+  Matelassada, edredom Adomes, peseira Vermont, protetores Jolitex
+  (Glacial e matelassê), lixeira inox Powermaid, panelas MTA Serena,
+  cestas de vime e almofadas.
+- Em produtos existentes: Cortina Malta Adomes ganhou **Branco 1,80x2,00
+  (R$ 185,00)** e a Bege passou a ter tamanho "2,60x3,00"; Cobertor LK 4S
+  ganhou **Bege** (sem preço).
+- Fotos de itens já no catálogo (protetores Jolitex Premium em 4 tamanhos)
+  bateram com os preços cadastrados — exceto uma unidade Casal etiquetada
+  128,38 (mantido 114,17; confirmar).
+
+**Dúvidas abertas desta carga** (perguntadas à cliente): preço do MTA
+Serena (480 ou 680), tamanho/tipo da Döhler Romance de 36,00, se a toalha
+Lapa de 112,95 é mesmo "terracota" (parece branca), se o Buddemeyer
+egípcio branco é 159,89 como as outras cores, e os 21 itens sem etiqueta.
+
 ## 11. Pendências / próximos passos
 
 - [ ] Trocar as credenciais do Mercado Pago pela conta real da cliente
@@ -380,4 +411,4 @@ organizadas com nomes e preços depois.
 
 ---
 
-*Última atualização: 2026-10-19.*
+*Última atualização: 2026-10-24.*

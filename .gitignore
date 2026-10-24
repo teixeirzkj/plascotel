@@ -16,6 +16,11 @@ dist-ssr
 # Backups locais do catálogo (gerados antes de mudanças em massa)
 backups/
 
+# Fotos de produtos recebidas da cliente (centenas de MB — sobem pro
+# Supabase Storage, nunca pro repositório)
+produtos/
+produtos2/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
