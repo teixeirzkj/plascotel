@@ -387,6 +387,13 @@ Malta Bege, Gold 180 Bari, Porta-travesseiro Camesa (6 variações + nova
 **Jogo de cama Priori 4 peças Casal - Döhler** (estampa Vivian, pendente
 desde 17/10) com foto e sem preço.
 
+Respostas da cliente às dúvidas da carga: panelas MTA Serena = **480,00**
+(à vista; 680 é o preço a prazo da loja física — o site só vende à vista),
+Döhler Romance 36,00 é toalha de **rosto** 50x80 (produto renomeado),
+Lapa é terracota mesmo, Buddemeyer egípcio **Branco 112,95** (as outras
+cores 159,89), Jolitex Premium **Casal 128,17** (era 114,17) e almofada
+chevron **32,38** nas 3 cores — tudo com estoque 20.
+
 ## 11. Pendências / próximos passos
 
 - [ ] Trocar as credenciais do Mercado Pago pela conta real da cliente
