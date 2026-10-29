@@ -471,6 +471,37 @@ Sugestão pra depois: criar uma categoria **"Mesa Posta"** (sousplats,
 toalhas de mesa, argolas, cristaleria de servir) — hoje esses itens estão
 espalhados entre Cozinha, Pratos e Cama/Mesa/Banho.
 
+### Fotos anexadas e produtos novos (2026-10-29)
+
+A cliente mandou fotos de produto (Google/sites) pelos Downloads, uma por
+vez, com o nome do item no arquivo. **Fotos anexadas** a produtos que já
+existiam: Protetor de travesseiro Glacial; Jogo de banho Buddemeyer
+(Branco bordado); Protetor de colchão Premium (4 tamanhos — fotos de
+cama + gotas em todos, embalagem própria no Casal e no Queen); Protetor
+matelassê Casal (embalagem laranja); Cesta de piquenique (Grande e
+Pequena); Almofada pelúcia chevron (3 cores, Rosa virou a 1ª variação);
+Edredom Adomes Rosa; Peseira Vermont; Cobertor Lili Katz **Bege** (fotos
+tiradas de uma página da Cassol salva em HTML); Saia box Square (Fendi =
+foto marrom; Branco Queen usa as fotos da Matelassada, a pedido); Saia
+box Matelassada (Solteiro e King); Cortinas Messina, Malta Branca,
+Santorini Rosa, Nature (2 tamanhos) e Chicago. A Cortina Blackout
+4,30x2,60 Döhler foi renomeada para **Alice com ilhós cromado**.
+
+**Produtos novos, sem preço (R$ 0):** Jogo de panelas Cook Quartzo 6
+peças - Mimo Style; Toalha de rosto Lollipop veludo 48x80 - Buddemeyer
+(Prata); Lixeira Inox 3L com pedal - Powermaid; Cortina Blackout Aneliza
+5,40x2,50 - Döhler (Natural); Cortina Blackout Lore 3,00x2,60 (Cinza).
+
+**Confirmar com a cliente:** a Lore pode ser a mesma "Blackout Decora
+3,00x2,60" (mesmo tamanho, cinza — mas a Decora diz "estampa digital");
+a marca da Lore; as 2 fotos `cortinaquartoesala200x180dohler` (mesma sala
+das fotos da Messina) — são da Cortina Renove?
+
+**Contagem no fim do dia:** 204 produtos / 349 variações. Só 39 produtos
+completos (foto + preço em todas as variações). 146 produtos sem nenhuma
+foto (Cozinha 62, Cama/Mesa/Banho 35, Decoração 27, Pratos 11, Pijamas 11)
+e 77 sem nenhum preço (107 variações a R$ 0).
+
 ## 11. Pendências / próximos passos
 
 - [ ] Trocar as credenciais do Mercado Pago pela conta real da cliente
@@ -508,4 +539,4 @@ espalhados entre Cozinha, Pratos e Cama/Mesa/Banho.
 
 ---
 
-*Última atualização: 2026-10-28.*
+*Última atualização: 2026-10-29.*
