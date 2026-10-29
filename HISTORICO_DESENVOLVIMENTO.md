@@ -408,6 +408,69 @@ Glacial 56,12 da nota já estava cadastrado. **Dúvida**: as estampas
 os mesmos preços das da nota (92,26 / 106,80 / 70,71) — podem ser as
 mesmas peças com outro nome; confirmar com a cliente pra não duplicar.
 
+### Quarta carga — fotos da loja em `produtos3/` (2026-10-28)
+
+A cliente mandou **181 fotos** (`PLASCOTEL/produtos3/`, ignorado pelo
+git). Mistura de prints dos stories do Instagram da loja (já com nome e
+preço), fotos de prateleira com etiqueta "PROMOÇÃO"/"Volte sempre" e
+caixas do estoque (muita cristaleria Wolff / Lyor / Crystal Bohemia).
+Leitura foto a foto ficou no scratchpad da sessão
+(`leitura-produtos3.md`). Resultado: **109 produtos novos / 124
+variações**, todos ainda sem foto — catálogo agora com **199 produtos /
+344 variações**. 56 variações entraram com preço (estoque 20) e **68 a
+R$ 0** (estoque 0). Por categoria: Cozinha 57 (copos, taças, jarras,
+faqueiros, panelas, garrafas térmicas, açucareiros…), Decoração 24
+(tapetes, varões, espelhos, quadros, vasos, almofada, umidificador),
+Cama/Mesa/Banho 17 (toalhas de mesa, capas de cadeira, argolas de
+guardanapo, jogo de cama Imperiale, colcha Velvet, edredom Altenburg,
+cobre-leito Plaza, pillow top) e Pratos 11 (sousplats, pratos de cristal
+Wolff/Lyor, bowls).
+
+**Já existiam e não foram duplicados:** kit luva + pegador (34,00), kit
+pano de copa (12,00), protetor de travesseiro impermeável (22,50), "Kit
+tábua de cortar" = kit de utensílios rosa/azul (25,00; descrição corrigida
+para 5 peças) e os pratos de cerâmica verde-água (já estão como "Prato"
+Verde a 37,00 — a etiqueta **270,42** na pilha pode ser o jogo; confirmar).
+
+**Dúvidas de preço** (cadastrados com o valor mais provável, estoque 20):
+- Faqueiro Treviso (etiquetas 80,00 e 70,00 → **70,00**) e Faqueiro Decor
+  Simonaggio (110,00 e 90,00 → **90,00**): duas etiquetas em cada; usei
+  a menor, seguindo o caso das panelas MTA (menor = à vista).
+- Bule Sonetto Soprano (36,00 e 41,65 → **36,00**) e garrafa Onix 250 ml
+  (41,65 e 25,00 → **25,00**); o 41,65 deve ser da garrafa térmica
+  branca Soprano, que ficou a R$ 0.
+- Toalha de mesa Jacquard Flora Jolitex **100,95** — etiqueta estava em
+  outra embalagem da mesma toalha.
+- Prato para bolo Pearl Wolff **312,60** (centavos ilegíveis) e
+  cobre-leito Plaza Lavive **417,00** (centavos cortados, tamanho não
+  visível).
+- Taça Alex Wolff **146,00** e Prato Pearl **16,51** — unidade ou caixa?
+- Toalha Encanto 139,80 e Jogo de cama Imperiale 393,40 — tamanho não
+  visível.
+
+**A R$ 0 por preço ilegível ou ausente:** Tapete Comfort Redondo Adomes
+("_44,53", primeiro dígito tampado), Jarra Lines Wolff (56,00 na
+prateleira, provavelmente dos copos), Suqueira Palm Tree Wolff (235,04
+numa caixa Wolff fechada ao lado), Jarra de cerâmica folha (15,95?),
+Passadeira Allegra (50,60 numa embalagem Pinheiro ao lado), Kit varão
+cromado Adomes (111,95 num pacote, sem saber se 2 m ou 3 m) e todas as
+caixas de cristaleria sem etiqueta (Bohemia Veronica e Crex flute,
+faqueiros Valência e Mother Pearl, jarra Praga, garrafas Buffalo e 850 ml,
+açucareiros, travessa e potiche Lys, Coupe Lily, centro de mesa, Red
+Cherry, Lotus, Mega Star, Lyor parede dupla, canecas pastel, sousplats
+exceto Merida, tapetes/varões exceto VIP Design e pelúcia, espelhos,
+quadros, pillow top, ralador, amassador…). No admin, filtrar por preço 0.
+
+Fotos descartadas: 2 da loja rabiscadas, 1 print de login, 1 print de
+conversa de WhatsApp, 1 dos pés e 2 de ambiente da loja (essas duas podem
+servir pra seção "Sobre a loja"). Não cadastrado por falta de
+identificação: um tapete creme com relevo "pedras" que aparece ao fundo
+em 3 fotos sem etiqueta.
+
+Sugestão pra depois: criar uma categoria **"Mesa Posta"** (sousplats,
+toalhas de mesa, argolas, cristaleria de servir) — hoje esses itens estão
+espalhados entre Cozinha, Pratos e Cama/Mesa/Banho.
+
 ## 11. Pendências / próximos passos
 
 - [ ] Trocar as credenciais do Mercado Pago pela conta real da cliente
@@ -429,15 +492,20 @@ mesmas peças com outro nome; confirmar com a cliente pra não duplicar.
       configurar `RESEND_API_KEY`/`RESEND_FROM_EMAIL`/`CRON_SECRET` na
       Vercel — sem isso, o lembrete de carrinho abandonado (seção 8) fica
       pronto no código mas não envia nada de verdade.
-- [ ] Fotos: ainda faltam em quase todos os produtos das cargas de 10/10
-      e na maioria dos de 17/10 (ver seção 10); a cliente vai mandar
-      organizadas, com nome e preço.
-- [ ] Preços dos 9 produtos cadastrados a R$ 0 (seção 10) — ao receber,
-      colocar preço e estoque 20.
+- [ ] Fotos: ainda faltam em quase todos os produtos das cargas de 10/10,
+      na maioria dos de 17/10 e 24/10 e em **todos** os 109 da carga de
+      28/10 (ver seção 10); a cliente vai mandar organizadas (~180 da
+      carga nova + ~100 das anteriores), com nome e preço.
+- [ ] Preços dos itens a R$ 0: ~25 das cargas anteriores + 68 variações
+      da carga de 28/10 (seção 10) — ao receber, colocar preço e
+      estoque 20. Conferir também as "dúvidas de preço" da quarta carga.
+- [ ] **Limpa final do catálogo** (pedido da cliente): revisar tudo que
+      está sem preço, sem foto, sem tamanho/cor ou com nome genérico, e
+      decidir o que fica, o que some e o que vira variação de outro.
 - [ ] Definir cor do Lençol Priori King e do Camisetão margarida; definir
       tamanho dos dois pijamas "manga curta" (hoje estão à venda com
       estoque 20 sem tamanho, porque a cliente pediu 20 em tudo).
 
 ---
 
-*Última atualização: 2026-10-24.*
+*Última atualização: 2026-10-28.*

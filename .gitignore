@@ -20,6 +20,7 @@ backups/
 # Supabase Storage, nunca pro repositório)
 produtos/
 produtos2/
+produtos3/
 
 # Editor directories and files
 .vscode/*
