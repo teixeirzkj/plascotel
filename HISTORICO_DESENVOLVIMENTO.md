@@ -502,6 +502,66 @@ completos (foto + preço em todas as variações). 146 produtos sem nenhuma
 foto (Cozinha 62, Cama/Mesa/Banho 35, Decoração 27, Pratos 11, Pijamas 11)
 e 77 sem nenhum preço (107 variações a R$ 0).
 
+### Fotos de produto — sessões de 2026-11-04 e 2026-11-06
+
+Mesmo fluxo de 29/10 (cliente salva a foto em Downloads com o nome do
+item; anexamos ao produto/variação certo, foto ambientada primeiro).
+Cerca de 55 produtos ganharam foto: passadeira Allegra (Azul e Cinza,
+com o desenho de medidas), tapete Guarujá Pinheiro, tapetes Comfort
+Adomes (retangular e redondo), tapete VIP Design, varões (poliuretano e
+cromado, todos os tamanhos), toalhas de mesa (Istambul, rendada PVC,
+Jacquard Flora, Renova Hércules), vaso espelhado, sousplats (35 cm,
+Martelado, Merida, Moon, Balls), espelho Moldurart, trio de quadros
+Talheres, colcha Neo Clássico, pillow top, jarra Banana Leaf, canecas
+(Pink neon, Rosa alça coração, Grafite, PS Secret Inside), xícaras de
+parede dupla (Coração e Canelada), caneca mixer, prato Bee, copos
+Mandala, potiche Lys, bule Sonetto, garrafa Onix, amassador, conjunto
+churrasco, capas de cadeira (Cinza, Verde oliva, assento Palha), ralador
+Tramontina, kit luva (2 estampas), kit pano de copa, kit tábua (2
+cores), panelas Safira, faqueiros Bon Gourmet e Mother Pearl, boleira
+Bangkok.
+
+**Ajustes feitos com base nas fotos/nomes da cliente:** VIP Design cor
+Rosé → **Nude**; caneca fosca Cinza → **Grafite**; renomeados: Tapete
+Guarujá Renaissance (Pinheiro), Jarra Banana Leaf 18x11x23, Caneca PS
+Secret Inside 350 ml Lyor, Bule Sonetto 750 ml, Ralador universal inox
+Utilitá (era "3 faces"), Prato para bolo Bangkok 29x21 (era "boleira
+canelada"), Colcha Velvet Neo Clássico (sem "King" no nome). Kit tábua
+voltou a "4 peças" (a "faca pequena" era a capa da faca). Xícara parede
+dupla: "Lisa (2 un)" era a de **coração** (cliente confirmou) — virou
+"Coração (2 un) 80 ml"; "Canelada" virou "Canelada (2 un) 80 ml".
+Ordem de variação trocada pra a 1ª ter foto/preço: sousplat 35 cm
+(Branco/prata 1º), garrafa Soprano (Preto/Onix 1º).
+
+**Novos (sem preço):** variação **Queen** na colcha Neo Clássico (foto
+da embalagem diz Queen; a etiqueta da loja dizia King 467,14) e produto
+**Coador de café de vidro com jarra**.
+
+**Fotos não usadas de propósito** (enganariam o cliente): embalagem do
+*caminho de mesa* Istambul 0,40x1,50 (não é a toalha); banner "100%
+algodão 200 fios" no pillow top (embalagem da loja diz 100% poliéster);
+jogo Safira com panela de pressão (8 peças); kit de 9 panos de copa (a
+loja vende o de 3); termômetro -20/+150 °C da xícara não foi pra
+descrição.
+
+**Correção no site (commit 7ae8779):** o card da vitrine usava só a foto
+da 1ª variação; quando ela não tinha foto, o card ficava vazio mesmo com
+outras cores fotografadas. Agora usa a 1ª variação que tiver foto.
+
+**Confirmar com a cliente:** colcha Neo Clássico é King, Queen ou as
+duas (e a cor — cadastrada Cinza, fotos parecem bege); Bangkok vem com
+cúpula?; Toalha Jacquard Flora é 8 lugares (embalagem) ou 4 (nome do
+arquivo)?; faqueiro rosa é Lyor Mother Pearl (caixa da loja) ou Bon
+Gourmet?; espelho Moldurart tem as outras cores da foto de amostras?;
+Tapete Comfort redondo = 244,53?; Jarra Banana Leaf = 15,95?; Bule
+Sonetto 36,00 ou 41,65?; preço dos varões (2 m e 3 m). A foto do
+**Faqueiro Decor Provençal** (Simonaggio) não chegou nos Downloads.
+
+**Contagem no fim de 06/11:** 205 produtos / 351 variações; 57
+produtos completos (eram 39); 102 sem nenhuma foto (eram 146) — Cozinha
+44, Cama/Mesa/Banho 26, Decoração 15, Pijamas 11, Pratos 6; 78 sem
+nenhum preço (109 variações a R$ 0).
+
 ## 11. Pendências / próximos passos
 
 - [ ] Trocar as credenciais do Mercado Pago pela conta real da cliente
@@ -539,4 +599,4 @@ e 77 sem nenhum preço (107 variações a R$ 0).
 
 ---
 
-*Última atualização: 2026-10-29.*
+*Última atualização: 2026-11-06.*
