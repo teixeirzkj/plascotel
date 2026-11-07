@@ -42,7 +42,10 @@ export function imagemPrincipal(product: Product): string {
   if (variantes.length > 0 && variantes[0].imagens.length > 0) {
     return variantes[0].imagens[0];
   }
-  return product.imagens[0];
+  if (product.imagens.length > 0) return product.imagens[0];
+  // Sem foto na 1ª variação nem no produto: usa a 1ª variação que tiver foto,
+  // pra o card não ficar vazio quando só algumas cores já têm imagem.
+  return variantes.find((v) => v.imagens.length > 0)?.imagens[0] ?? product.imagens[0];
 }
 
 export function imagensDaVariante(product: Product, variante: ProductVariant | null): string[] {
