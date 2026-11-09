@@ -18,17 +18,6 @@ export interface HeroSlide {
  */
 export const heroSlides: HeroSlide[] = [
   {
-    id: "cama",
-    imagem: "/hero/cama.webp",
-    badge: "Cama, mesa e banho",
-    titulo: "Quartos feitos para relaxar",
-    descricao: "Jogos de cama, colchas e toalhas macias para transformar o seu descanso.",
-    ctaPrimarioLabel: "Ver coleção",
-    ctaPrimarioTo: "/moveis",
-    ctaSecundarioLabel: "Ver categorias",
-    ctaSecundarioTo: "/categorias",
-  },
-  {
     id: "mesa",
     imagem: "/hero/mesa.webp",
     badge: "Mesa posta",
@@ -38,6 +27,17 @@ export const heroSlides: HeroSlide[] = [
     ctaPrimarioTo: "/moveis",
     ctaSecundarioLabel: "Ver ofertas",
     ctaSecundarioTo: "/ofertas",
+  },
+  {
+    id: "cama",
+    imagem: "/hero/cama.webp",
+    badge: "Cama, mesa e banho",
+    titulo: "Quartos feitos para relaxar",
+    descricao: "Jogos de cama, colchas e toalhas macias para transformar o seu descanso.",
+    ctaPrimarioLabel: "Ver coleção",
+    ctaPrimarioTo: "/moveis",
+    ctaSecundarioLabel: "Ver categorias",
+    ctaSecundarioTo: "/categorias",
   },
   {
     id: "geral",
