@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Navigate, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
-import { FiMinus, FiPlus, FiShoppingBag, FiTruck, FiRefreshCw, FiCreditCard } from "react-icons/fi";
+import { FiMinus, FiPlus, FiShoppingBag, FiTruck, FiCreditCard } from "react-icons/fi";
 import { useCatalogStore } from "../store/catalog";
 import { formatCurrency, discountPercent } from "../lib/format";
 import { useCartStore } from "../store/cart";
@@ -410,15 +410,12 @@ export default function ProductDetail() {
             </div>
           </dl>
 
-          <div className="mt-4 grid grid-cols-1 gap-2 sm:mt-7 sm:grid-cols-3 sm:gap-3">
+          <div className="mt-4 grid grid-cols-1 gap-2 sm:mt-7 sm:grid-cols-2 sm:gap-3">
             <div className="flex items-center gap-2 text-xs text-charcoal/70 sm:text-sm">
               <FiTruck className="flex-none text-wood-700" /> Entrega em {product.prazoEntrega}
             </div>
             <div className="flex items-center gap-2 text-xs text-charcoal/70 sm:text-sm">
               <FiCreditCard className="flex-none text-wood-700" /> Pagamento online seguro
-            </div>
-            <div className="flex items-center gap-2 text-xs text-charcoal/70 sm:text-sm">
-              <FiRefreshCw className="flex-none text-wood-700" /> Troca em até 7 dias
             </div>
           </div>
         </div>

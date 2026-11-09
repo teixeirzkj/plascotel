@@ -564,39 +564,80 @@ nenhum preço (109 variações a R$ 0).
 
 ## 11. Pendências / próximos passos
 
-- [ ] Trocar as credenciais do Mercado Pago pela conta real da cliente
-      (ver seção 5, "Contas de teste").
-- [ ] Decidir sobre nota fiscal de verdade (falar com a Hotline Tecnologia
-      sobre integração via API, ou considerar Focus NFe/PlugNotas/Bling).
-- [ ] Se quiser, reconectar o GitHub App da Vercel e voltar o repositório
-      a ser privado (hoje está público por causa de um bug de permissão).
-- [ ] Apagar variáveis de ambiente órfãs da InfinitePay na Vercel.
-- [ ] Avaliar se cartão/boleto (Payment Brick do Mercado Pago) precisa
-      ser adicionado como opção, já que a InfinitePay cobria isso antes.
-- [ ] Confirmar `LOJA_CIDADE_ORIGEM`/`LOJA_ESTADO_ORIGEM` batem exatamente
-      com o que o ViaCEP devolve pra cidade da loja (comparação é
-      case/acento-insensitive, mas precisa do nome certo).
-- [ ] Se quiser um Content-Security-Policy completo (script/style/img por
-      domínio), precisa mapear todos os recursos externos e testar em
-      navegador de verdade (ver seção 7).
-- [ ] Criar conta no Resend, verificar o domínio do e-mail da loja e
-      configurar `RESEND_API_KEY`/`RESEND_FROM_EMAIL`/`CRON_SECRET` na
-      Vercel — sem isso, o lembrete de carrinho abandonado (seção 8) fica
-      pronto no código mas não envia nada de verdade.
-- [ ] Fotos: ainda faltam em quase todos os produtos das cargas de 10/10,
-      na maioria dos de 17/10 e 24/10 e em **todos** os 109 da carga de
-      28/10 (ver seção 10); a cliente vai mandar organizadas (~180 da
-      carga nova + ~100 das anteriores), com nome e preço.
-- [ ] Preços dos itens a R$ 0: ~25 das cargas anteriores + 68 variações
-      da carga de 28/10 (seção 10) — ao receber, colocar preço e
-      estoque 20. Conferir também as "dúvidas de preço" da quarta carga.
-- [ ] **Limpa final do catálogo** (pedido da cliente): revisar tudo que
-      está sem preço, sem foto, sem tamanho/cor ou com nome genérico, e
-      decidir o que fica, o que some e o que vira variação de outro.
-- [ ] Definir cor do Lençol Priori King e do Camisetão margarida; definir
-      tamanho dos dois pijamas "manga curta" (hoje estão à venda com
-      estoque 20 sem tamanho, porque a cliente pediu 20 em tudo).
+Estado em 2026-11-09 (noite): catálogo com **187 produtos, todos com foto**.
+O único buraco é **preço**. Falta, em ordem:
+
+**Catálogo**
+- [ ] **Preços**: **76 produtos** a R$ 0 aguardando a cliente alinhar — ao
+      receber, colocar preço e estoque 20. Lista em `scratchpad/recon/
+      precos_a_definir.txt`/`.csv` (enquanto a sessão existir).
+
+**Pagamento e entrega**
+- [ ] Trocar as credenciais do **Mercado Pago** pela conta real da cliente
+      (seção 5, "Contas de teste").
+- [ ] Trocar as credenciais do **Melhor Envio** (frete) pela conta da cliente.
+- [ ] Apagar na Vercel as variáveis de ambiente órfãs da **InfinitePay**.
+- [ ] Avaliar se **cartão/boleto** (Payment Brick do Mercado Pago) entra como
+      opção além do Pix.
+
+**E-mail (no final, junto com o domínio)**
+- [ ] **Domínio + Resend**: pegar/verificar o domínio da loja, verificá-lo no
+      Resend (registros DNS) e configurar `RESEND_API_KEY`/`RESEND_FROM_EMAIL`/
+      `CRON_SECRET` na Vercel. Sem isso o lembrete de carrinho (seção 8) não
+      envia. Decisão da cliente: pegar o domínio por último.
+
+**Segurança (ver SEGURANCA.md; cliente escolheu opção B = aplicar na finalização)**
+- [ ] No painel Supabase: desligar "Allow new users to sign up" e rodar
+      `supabase/seguranca_admin.sql` no SQL Editor.
+- [ ] Commit + deploy das correções de segurança (CSP, limites, etc.).
+- [ ] Conferir na Vercel que as chaves secretas não têm prefixo `VITE_` e que
+      Preview Deployments estão protegidos. Opcional: voltar o repo a privado.
+
+**Config / verificação**
+- [ ] Confirmar `LOJA_CIDADE_ORIGEM`/`LOJA_ESTADO_ORIGEM` batem com o ViaCEP.
+- [ ] Depois do deploy, testar uma compra ponta a ponta (a CSP nova não deve
+      quebrar nada).
+
+**Housekeeping**
+- [ ] Limpar imagens órfãs no Storage (fotos da loja que subi e depois removi,
+      e imagens dos produtos apagados em 11-09).
+
+**Concluído em 2026-11-09**
+- [x] Nota fiscal: fica só o comprovante em PDF (seção 3), sem NF-e.
+- [x] Fotos + limpa final do catálogo (seção 12): 0 produto sem foto.
+- [x] Pijamas/camisola: Camisetão margarida removido; "manga curta love" = P;
+      divertido/margarida já tinham tamanho.
+
+## 12. Reconciliação fotos×catálogo e limpa final (2026-11-09)
+
+Pré-entrega para a cliente. Transcrevi as **399 fotos** de `produtos2/3/4`
+(não existe `produtos1`) com workflows de visão e casei contra o catálogo em
+duas passadas (foto→catálogo e catálogo→foto), com verificação adversarial.
+Backup antes: `backups/*_20261109_044634.json`.
+
+- **Removidos 10 produtos** (regra: só os SEM foto que não aparecem nas fotos
+  da loja): almofada tricô waffle, argola de guardanapo, bowl de cerâmica,
+  espelho oval dourado, jogo Provença King, jogo Spider-Man, kit fronha Priori,
+  lençol Priori, lençol vira Percal 180, vaso de vidro canelado. Produtos sem
+  correspondência mas **com** foto foram mantidos a pedido da cliente.
+- **Tentativa de cadastrar 19 "novos" — REVERTIDA.** Cadastrei 19 produtos que
+  pareciam faltar, mas a cliente apontou dois erros: (1) usei a **foto da loja**
+  (WhatsApp) como imagem do produto, o que não deve ser feito; (2) vários eram
+  **duplicatas** de itens que já existiam no catálogo com foto do Google, só que
+  com outro nome (ex.: faqueiro, travessa, sobremesa, xícara, centro de mesa).
+  Ação corretiva no mesmo dia: removi as fotos de loja de 39 produtos e apaguei
+  os 19 novos. Os originais (com foto do Google) ficaram intactos. Ficou mantida
+  só a cor Branco da Cortina Alice (foto web legítima) como variante do produto
+  existente, mais fotos web do lençol Toque de Seda e do Prato Pearl.
+- A pedido da cliente ("faltar só preço"), **removidos também os 19 produtos que
+  ficaram sem foto**.
+- **Catálogo final: 187 produtos, TODOS com foto.** Único buraco: **preço** em
+  **76 produtos**, aguardando a cliente. (Descrições foram melhoradas de passagem.)
+- LIÇÃO para a próxima: casar "faltantes" com rigor muito maior contra o catálogo
+  (nome/linha diferentes escondem o mesmo produto) e **nunca** usar a foto da loja
+  como imagem final sem aprovação da cliente.
+- Scripts da operação em `scratchpad/recon/` (não versionados).
 
 ---
 
-*Última atualização: 2026-11-06.*
+*Última atualização: 2026-11-09.*

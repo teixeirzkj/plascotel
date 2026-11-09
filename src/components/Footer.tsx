@@ -75,7 +75,6 @@ export function Footer() {
           <ul className="mt-2.5 flex flex-col gap-1.5 text-xs text-white/60 md:mt-4 md:gap-2 md:text-sm">
             <li><Link to="/politica-privacidade" className="hover:text-white">Privacidade</Link></li>
             <li><Link to="/termos-de-uso" className="hover:text-white">Termos de uso</Link></li>
-            <li><Link to="/politica-de-troca" className="hover:text-white">Trocas</Link></li>
             <li><Link to="/politica-de-entrega" className="hover:text-white">Entrega</Link></li>
           </ul>
         </div>

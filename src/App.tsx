@@ -76,18 +76,6 @@ export default function App() {
             }
           />
           <Route
-            path="/politica-de-troca"
-            element={
-              <PolicyPage
-                title="Política de troca"
-                paragraphs={[
-                  "Você tem até 7 dias corridos após o recebimento para solicitar troca ou devolução, desde que o produto esteja em sua embalagem original e sem sinais de uso.",
-                  "Para solicitar, entre em contato pelo WhatsApp informando o número do seu pedido.",
-                ]}
-              />
-            }
-          />
-          <Route
             path="/politica-de-entrega"
             element={
               <PolicyPage

@@ -37,6 +37,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     res.status(400).json({ error: "Nenhum item informado." });
     return;
   }
+  // Teto no tamanho da lista — evita payload gigante usado pra abusar da
+  // cota do Melhor Envio ou forçar processamento desnecessário no servidor.
+  if (itens.length > 100) {
+    res.status(400).json({ error: "Itens demais na cotação." });
+    return;
+  }
 
   try {
     const resultado = await cotarFrete(cepLimpo, itens, { cidade: cidadeDestino, estado: estadoDestino });

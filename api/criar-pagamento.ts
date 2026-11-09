@@ -37,7 +37,7 @@ const clienteSchema = z.object({
 
 const bodySchema = z
   .object({
-    itens: z.array(itemSchema).min(1, "Carrinho vazio."),
+    itens: z.array(itemSchema).min(1, "Carrinho vazio.").max(100, "Pedido com itens demais."),
     cliente: clienteSchema,
     formaPagamento: z.enum(["mercadopago", "whatsapp"]),
     cepDestino: z.string().trim().optional(),
