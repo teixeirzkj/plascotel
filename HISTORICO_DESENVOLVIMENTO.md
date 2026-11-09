@@ -589,7 +589,9 @@ O único buraco é **preço**. Falta, em ordem:
 **Segurança (ver SEGURANCA.md; cliente escolheu opção B = aplicar na finalização)**
 - [ ] No painel Supabase: desligar "Allow new users to sign up" e rodar
       `supabase/seguranca_admin.sql` no SQL Editor.
-- [ ] Commit + deploy das correções de segurança (CSP, limites, etc.).
+- [x] Commit + deploy das correções de segurança (CSP, limites) + remoção da
+      política de troca: feito e publicado em 2026-11-09 (commit 5e220f0). A CSP
+      está no ar — testar uma compra ponta a ponta para garantir que não quebrou.
 - [ ] Conferir na Vercel que as chaves secretas não têm prefixo `VITE_` e que
       Preview Deployments estão protegidos. Opcional: voltar o repo a privado.
 

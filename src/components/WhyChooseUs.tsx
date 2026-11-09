@@ -20,7 +20,7 @@ export function WhyChooseUs() {
         className="overflow-hidden rounded-3xl"
       >
         <img
-          src="https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?q=80&w=1200&auto=format&fit=crop"
+          src="/hero/cama.webp"
           alt="Ambiente decorado com produtos Plascotel"
           className="h-full w-full object-cover"
           loading="lazy"
