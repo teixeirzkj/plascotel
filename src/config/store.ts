@@ -5,7 +5,11 @@
  */
 export const STORE_NAME = import.meta.env.VITE_STORE_NAME || "Plascotel";
 
-export const WHATSAPP_NUMBER = import.meta.env.VITE_WHATSAPP_NUMBER || "";
+// Número oficial da Plascotel, fixado no código (74 99904-0209). Tem
+// precedência sobre a variável VITE_WHATSAPP_NUMBER da Vercel (que estava no
+// número antigo). Para voltar a controlar por variável, troque de volta para
+// `import.meta.env.VITE_WHATSAPP_NUMBER || ""` e ajuste a variável na Vercel.
+export const WHATSAPP_NUMBER = "5574999040209";
 
 export const INSTAGRAM_URL = import.meta.env.VITE_INSTAGRAM_URL || "";
 
